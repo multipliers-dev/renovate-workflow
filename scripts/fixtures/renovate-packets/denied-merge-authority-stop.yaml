@@ -1,0 +1,66 @@
+policy_version: "3"
+
+pr:
+  number: 9004
+  title: "Fixture: denied merge authority stop"
+  url: "https://github.com/example/repo/pull/9004"
+  branch: renovate/fixture-denied-authority
+  draft: false
+  head_sha: "cccccccccccccccccccccccccccccccccccccccc"
+
+evidence_checked_at: "2026-06-17T00:00:00.000Z"
+
+classification:
+  recommendation: review_manually
+  decision: human_required
+  merge_authority: denied
+  risk_class: high_touch_tooling
+  risk_level: high
+
+evidence:
+  packages:
+    - name: eslint
+      from: "^8.0.0"
+      to: "^9.0.0"
+      bump: major
+      dep_kind: dev
+  changed_files:
+    - package-lock.json
+    - server/package.json
+  pr_file_count: 2
+  package_count: 1
+  lockfile_maintenance: false
+  lockfile_delta:
+    additions: 10
+    deletions: 10
+    lockfile_paths_changed: 1
+    line_delta_total: 20
+    line_delta_limit: 800
+    within_threshold: true
+    threshold_flags: []
+  ci:
+    status: green
+    blocking_check: "CI / test"
+    details: "fixture"
+  release_note_flags: []
+  sensitive_paths_touched: []
+  workflow_changes:
+    files: []
+    uses_pin_only: false
+    same_major_only: false
+  rubric_triggers: ["high_touch_package"]
+
+required_checks:
+  - pr_ci_green
+  - post_merge_main_ci_green
+  - lockfile_within_threshold
+
+human_required_if:
+  - implementation_changes_required
+  - ci_failure_unexplained
+  - runtime_behavior_affected
+
+triggered_human_required: []
+
+stop: false
+stop_reason: null

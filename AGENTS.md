@@ -1,6 +1,6 @@
 # Agent instructions
 
-Greenfield repo — universal execution and verification only. Architecture and product choices are yours to make for the task at hand.
+Portable Renovate merge ladder — authoritative implementation extracted from codenames-ai-guesser and generalized for consumer repositories.
 
 ## Commands
 
@@ -8,11 +8,38 @@ Greenfield repo — universal execution and verification only. Architecture and 
 | --- | --- |
 | `npm run dev` | Run TypeScript with reload (`tsx watch src/index.ts`) |
 | `npm start` | Run TypeScript once (`tsx src/index.ts`) |
-| `npm test` | Vitest (`--passWithNoTests` — green with zero tests) |
-| `npm run typecheck` | TypeScript `tsc --noEmit` |
+| `npm test` | Vitest — guardrails, stop-causes, investigation eligibility, freshness poll |
+| `npm run typecheck` | TypeScript `tsc --noEmit` (root + scripts) |
+| `npx tsx scripts/renovate-freshness-poll.ts --help` | Freshness poll CLI (babysit helper) |
+
+## Renovate workflow
+
+- Runbook: [docs/renovate-workflow.md](docs/renovate-workflow.md)
+- Policy sync model: [docs/policy-setup.md](docs/policy-setup.md)
+- Portable rubric: [.agents/policy-rubric.base.md](.agents/policy-rubric.base.md)
+- Consumer template: [.agents/renovate-policy.template.yml](.agents/renovate-policy.template.yml)
+- Synthetic example (tests): [examples/example-repo/renovate-policy.yml](examples/example-repo/renovate-policy.yml)
+
+## Skills
+
+| Skill | Path |
+| --- | --- |
+| Classifier | `.cursor/skills/renovate-classifier/` |
+| Loop | `.cursor/skills/renovate-loop/` |
+| Investigator | `.cursor/skills/renovate-investigator/` |
+| Maintainer | `.cursor/skills/renovate-maintainer/` |
+| Draft readiness | `.cursor/skills/renovate-draft-readiness/` |
+
+## Agents
+
+| Agent | Path |
+| --- | --- |
+| Maintainer | `.agents/renovate-maintainer.md` |
+| Investigator | `.agents/renovate-investigator.md` |
 
 ## Discipline
 
 - Pre-commit runs `npm test` and `npm run typecheck`; do not bypass hooks.
-- Keep changes focused; do not add product scaffolding (frameworks, databases, deploy pipelines) unless the task requires it.
+- Generalization removes repository-specific assumptions, not ladder semantics.
+- No distribution tooling or install scripts in PR1 scope.
 - Commit in small, logical steps with clear messages.

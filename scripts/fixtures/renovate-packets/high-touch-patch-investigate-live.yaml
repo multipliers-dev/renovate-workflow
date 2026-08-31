@@ -1,0 +1,18 @@
+# Mocked live PR evidence for fixture verification (vitest #402 shape).
+# Substitutes GitHub re-fetch when invocation includes fixture verification.
+# pr.head_sha must match high-touch-patch-investigate.yaml packet pr.head_sha.
+
+pr:
+  number: 402
+  head_sha: "cafebabe00000000000000000000000000000000"
+  mergeStateStatus: CLEAN
+  title: "fix(deps): update vitest to v4.1.5"
+  url: "https://github.com/multipliers-dev/codenames-ai-guesser/pull/402"
+  branch: renovate/vitest-4.x
+
+policy_version: "3"
+
+ci:
+  status: green
+  blocking_check: "CI / test"
+  details: "fixture — mocked live evidence for offline verification"

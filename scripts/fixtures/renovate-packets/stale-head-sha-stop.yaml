@@ -1,0 +1,65 @@
+policy_version: "3"
+
+pr:
+  number: 9002
+  title: "Fixture: stale head sha stop"
+  url: "https://github.com/example/repo/pull/9002"
+  branch: renovate/fixture-stale-head
+  draft: false
+  head_sha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+evidence_checked_at: "2026-06-17T00:00:00.000Z"
+
+classification:
+  recommendation: merge
+  decision: auto_merge_eligible
+  merge_authority: allowed
+  risk_class: lockfile_patch
+  risk_level: low
+
+evidence:
+  packages:
+    - name: lodash
+      from: "4.17.20"
+      to: "4.17.21"
+      bump: patch
+      dep_kind: runtime
+  changed_files:
+    - package-lock.json
+  pr_file_count: 1
+  package_count: 1
+  lockfile_maintenance: false
+  lockfile_delta:
+    additions: 2
+    deletions: 2
+    lockfile_paths_changed: 1
+    line_delta_total: 4
+    line_delta_limit: 800
+    within_threshold: true
+    threshold_flags: []
+  ci:
+    status: green
+    blocking_check: "CI / test"
+    details: "fixture"
+  release_note_flags: []
+  sensitive_paths_touched: []
+  workflow_changes:
+    files: []
+    uses_pin_only: false
+    same_major_only: false
+  rubric_triggers: []
+
+required_checks:
+  - pr_ci_green
+  - post_merge_main_ci_green
+  - lockfile_within_threshold
+
+human_required_if:
+  - implementation_changes_required
+  - ci_failure_unexplained
+  - runtime_behavior_affected
+
+triggered_human_required: []
+
+stop: false
+stop_reason: null

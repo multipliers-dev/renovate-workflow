@@ -1,0 +1,68 @@
+policy_version: "3"
+
+pr:
+  number: 425
+  title: "Update dependency tsx to v4.23.1"
+  url: "https://github.com/multipliers-dev/codenames-ai-guesser/pull/425"
+  branch: renovate/tsx-4.x-lockfile
+  draft: false
+  head_sha: "cafebabe11111111111111111111111111111111"
+
+evidence_checked_at: "2026-07-20T00:00:00.000Z"
+
+classification:
+  recommendation: review_manually
+  decision: human_required
+  merge_authority: denied
+  risk_class: unlisted_package
+  risk_level: medium
+
+evidence:
+  packages:
+    - name: tsx
+      from: "4.23.0"
+      to: "4.23.1"
+      bump: patch
+      dep_kind: dev
+  changed_files:
+    - package-lock.json
+  pr_file_count: 1
+  package_count: 1
+  lockfile_maintenance: false
+  lockfile_delta:
+    additions: 3
+    deletions: 3
+    lockfile_paths_changed: 1
+    line_delta_total: 6
+    line_delta_limit: 800
+    within_threshold: true
+    threshold_flags: []
+  ci:
+    status: green
+    blocking_check: "CI / test"
+    details: "fixture — unlisted tsx #425 shape"
+  release_note_flags: []
+  sensitive_paths_touched: []
+  workflow_changes:
+    files: []
+    uses_pin_only: false
+    same_major_only: false
+  rubric_triggers: ["unlisted_package"]
+
+required_checks:
+  - pr_ci_green
+  - post_merge_main_ci_green
+  - lockfile_within_threshold
+
+human_required_if:
+  - implementation_changes_required
+  - ci_failure_unexplained
+  - runtime_behavior_affected
+
+triggered_human_required: []
+
+stop: true
+stop_reason: "human_required: unlisted_package"
+stop_causes:
+  - decision_human_required
+  - stop_flag_expected_human_required
