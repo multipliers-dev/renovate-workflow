@@ -61,7 +61,7 @@ Success is `queue_empty` or a classification packet. The classifier **never merg
 
 ## Enable loop / babysit helpers
 
-Required for `/renovate-loop --babysit` and the freshness poll CLI. Not required to try the classifier or plain `/renovate-loop`.
+Required for `/renovate-loop --babysit` and the freshness poll CLI. Not required to try the classifier.
 
 Add a git devDependency and script in your consumer `package.json`:
 
