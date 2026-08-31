@@ -54,7 +54,11 @@ Do not embed package lists or CI bindings in `.cursor/skills/renovate-classifier
 
 ## renovate.json relationship
 
-`renovate.json` controls bot mechanics (grouping, scheduling). Agent ladder reads **policy YAML** for classification and check bindings. Optional cross-validation between JSON groups and YAML allowlists may be added later.
+`renovate.json` controls Renovate bot mechanics (scheduling, branch prefix, optional **topology** grouping). Agent ladder reads **policy YAML** for classification and check bindings.
+
+**Grouping ≠ risk classification.** Policy buckets (`packages.high_touch`, `packages.low_risk_tooling`) answer how the ladder should review an update. Renovate `groupName` rules answer which updates should land in one PR because they form a dependency stack (for example GitHub Actions pins that digest together). Do not mirror policy risk classes in `renovate.json`, and do not add catch-all npm minor/patch groups — unrelated packages belong in separate PRs unless they genuinely share topology.
+
+Example stubs keep GitHub Actions grouped with `pinDigests: true` only; npm packages default to individual PRs. Add further groups only for real stacks (eslint plugin families, framework cores), not for review policy.
 
 ## Verification
 

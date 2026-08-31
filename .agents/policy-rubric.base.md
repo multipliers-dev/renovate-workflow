@@ -74,7 +74,7 @@ Grouped PRs are not automatically `review manually`. Evaluate against safe-merge
 
 **Grouped → agent review** when every major is low-risk tooling devDependency and low-risk tooling major carve-out gates pass.
 
-Renovate group labels from consumer `renovate.json` are hints only — classify by package contents and bump type.
+Renovate `groupName` labels from consumer `renovate.json` are **not** risk classes — never map a group name (for example `high-touch tooling`) to `high_touch_tooling`. A grouped PR may contain mixed packages; classify each bumped package against policy YAML and aggregate per the grouped rules below.
 
 ## Low-risk tooling major → agent review
 

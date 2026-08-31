@@ -4,6 +4,8 @@ Open Renovate dependency PRs are handled through a **manual four-step ladder**: 
 
 **Portable implementation:** this repository owns the ladder (skills, agents, scripts, runbook). Consumer repositories retain `renovate.json`, `.github/workflows/renovate.yml`, and `.agents/renovate-policy.yml`. See [policy-setup.md](policy-setup.md).
 
+**Renovate grouping vs ladder policy:** `renovate.json` may batch updates that share topology (for example GitHub Actions digest pins). `.agents/renovate-policy.yml` defines review risk classes. The classifier evaluates package facts from each PR — it does not treat Renovate `groupName` as a risk label.
+
 **Deployment modes** (configured in consumer `.agents/renovate-policy.yml` → `repo.renovate_branch_prefix` and workflow):
 
 | Mode | Typical setup |
