@@ -136,6 +136,9 @@ repo:
     - src/**
     - .github/workflows/**
     - renovate.json
+  analytics_paths:
+    - src/**/analytics.ts
+  auth_paths: []
 
 packages:
   high_touch:
@@ -143,13 +146,14 @@ packages:
     - vite
     - typescript
     - eslint
+    - "@playwright/test"
   low_risk_tooling:
     - prettier
     - husky
     - lint-staged
     - "@types/*"
-  # runtime_rule: dependencies under workspace_roots not matched above → runtime_dependency
-  # unlisted: package ∉ high_touch ∪ low_risk_tooling and not runtime scope → unlisted_package
+  # runtime: dependencies under workspace_roots not matched above → runtime_dependency
+  # unlisted: devDependency not matched above → unlisted_package
 
 deployment:
   # pat_branch — PAT + renovate/ branch prefix (self-hosted)

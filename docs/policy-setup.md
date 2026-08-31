@@ -24,12 +24,11 @@ Store **facts needed to derive classifications**, not duplicated derived labels:
 | --- | --- |
 | `policy_version` | Bump when facts change; packets record version |
 | `repo.workspace_roots` | Manifest roots for runtime scope |
-| `repo.sensitive_paths` | Blast-radius hints for review lane |
+| `repo.sensitive_paths` / `repo.analytics_paths` / `repo.auth_paths` | Path blast-radius rules |
 | `packages.high_touch` | Explicit allowlist |
-| `packages.low_risk_tooling` | Explicit allowlist |
-| `packages.runtime_rule` | Human-readable scope for runtime deps |
-| `checks.required` | CI workflow files and/or commands |
-| `merge.*` | Authority + batch allowlist |
+| `packages.low_risk_tooling` | Explicit allowlist (supports `*` globs) |
+| `checks.pr_ci_green` / `checks.lockfile_within_threshold` | CI and lockfile gate bindings |
+| `check_assembly` + `checks.*` | Required-check assembly for packets |
 | `deployment.mode` | PAT branch vs GitHub App |
 
 ### Derived fields (do not store)
@@ -39,7 +38,7 @@ Store **facts needed to derive classifications**, not duplicated derived labels:
 
 ### What does NOT get a third file
 
-Do not add a repo-specific `policy-rubric.md` overlay that duplicates package lists. If lists cannot fit YAML cleanly, document the exception in consumer policy comments and extend schema deliberately — default is **not** a third synchronized artifact.
+Do not embed package lists or CI bindings in `.cursor/skills/renovate-classifier/policy-rubric.md` — that file is a thin entrypoint only. Classifier loads consumer YAML, then applies [policy-rubric.base.md](../.agents/policy-rubric.base.md). Deterministic lookup: [`scripts/lib/renovate-policy-facts.ts`](../scripts/lib/renovate-policy-facts.ts).
 
 ## Bootstrap a consumer
 
@@ -59,5 +58,5 @@ Do not add a repo-specific `policy-rubric.md` overlay that duplicates package li
 
 ## Verification
 
-- `npm test` — guardrail + classification fixtures
+- `npm test` — guardrail fixtures + `renovate-policy-facts` (consumer YAML drives classification)
 - Skill verification checklists under `.cursor/skills/renovate-*/verification.md`

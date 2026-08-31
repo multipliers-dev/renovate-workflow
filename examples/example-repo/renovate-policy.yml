@@ -131,9 +131,32 @@ repo:
   owner: example-org
   name: example-service
   renovate_branch_prefix: renovate/
-  sensitive_paths: # mirror policy-rubric.md
+  workspace_roots:
+    - package.json
+    - apps/server/package.json
+    - apps/web/package.json
+  sensitive_paths:
     - src/server/**
     - src/frontend/**
-    - src/server/lib/prompt/**
-    - src/frontend/lib/analytics.ts
     - renovate.json
+  analytics_paths:
+    - src/frontend/lib/analytics.ts
+  auth_paths: []
+
+packages:
+  high_touch:
+    - react
+    - vite
+    - eslint
+    - typescript
+    - "@playwright/test"
+  low_risk_tooling:
+    - prettier
+    - husky
+    - lint-staged
+    - "@types/*"
+  # runtime: dependencies (not devDependencies) under workspace_roots, not matched above
+  # unlisted: devDependency not matched above; investigation-eligible when stop_causes overridable
+
+deployment:
+  mode: pat_branch

@@ -15,7 +15,7 @@ Review **one open Renovate PR per run** in the active repository. **Prefer GitHu
 
 When invoked by `/renovate-loop --babysit`, the branch-update freshness gate may remain attached through bounded post-update GitHub settling and required PR CI completion. Standalone `/renovate-classifier` and normal `/renovate-loop` runs do not recheck.
 
-Classification rules: [policy-rubric.md](policy-rubric.md). Execution packet schema: [packet-schema.md](packet-schema.md).
+Classification rules: load consumer [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml), then apply [policy-rubric.base.md`](../../../.agents/policy-rubric.base.md) via [policy-rubric.md](policy-rubric.md). Execution packet schema: [packet-schema.md](packet-schema.md).
 
 ## Task
 
@@ -49,9 +49,22 @@ Re-run `/renovate-classifier` after the maintainer step to process the next FIFO
 5. **Forbidden write tools:** `merge_pull_request`, `pull_request_review_write`, `update_pull_request`, or any tool that merges, approves, comments, or closes PRs. No `gh pr merge`, `gh pr review`, or `gh pr close`.
 6. **Allowed write exception (§2.7 only):** `gh pr update-branch <N>` when `mergeStateStatus == BEHIND`. Requires authenticated `gh` with repo **write** access. Read-only GitHub MCP **cannot** update branches — if only readonly MCP is available and the PR is `BEHIND`, stop at §2.7 and instruct the operator to authenticate `gh` with write access or update the branch manually on GitHub.
 
-### 1. Resolve repository
+### 1. Resolve repository and load consumer policy
 
 From the active workspace git remote, resolve `owner` and `repo` (e.g. `git remote get-url origin` → `https://github.com/{owner}/{repo}.git`). Omit hardcoded owner/repo — consumer facts live in `.agents/renovate-policy.yml` when set.
+
+**Before any package, path, or CI classification**, read consumer `.agents/renovate-policy.yml` from the active workspace. Use:
+
+- `packages.high_touch` / `packages.low_risk_tooling` for package lookup (supports `*` globs)
+- Derived `unlisted_package` when a devDependency matches neither list; runtime scope for non-devDependencies
+- `repo.sensitive_paths`, `repo.analytics_paths`, `repo.auth_paths`, and optional `repo.sensitive_path_rules` for path blast radius
+- `checks.pr_ci_green` and `checks.lockfile_within_threshold.thresholds` for CI and lockfile gates
+- `check_assembly` + `checks.*` for `required_checks` assembly
+- `version` for packet `policy_version`
+
+Portable interpretation logic: [policy-rubric.base.md](../../../.agents/policy-rubric.base.md). Programmatic lookup helpers: [`scripts/lib/renovate-policy-facts.ts`](../../../scripts/lib/renovate-policy-facts.ts).
+
+If `.agents/renovate-policy.yml` is missing, **stop** and instruct the operator to copy [renovate-policy.template.yml](../../../.agents/renovate-policy.template.yml).
 
 ### 2. Discover open Renovate PRs
 
@@ -219,7 +232,7 @@ For the **selected PR only**, fetch in parallel where possible:
 | ---- | -------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | 1    | `pull_request_read` `method: get`            | `gh pr view <N> --json title,body,labels,isDraft,mergeable,headRefOid` | Title, body (release notes), labels, draft state, mergeable, **`head.sha`** for packet `head_sha` (post-update)   |
 | 2    | `pull_request_read` `method: get_files`      | `gh pr diff <N> --name-only` + `gh pr view <N> --json files`           | Changed paths, additions/deletions per file; **`pr_file_count`** = total files returned                           |
-| 3    | `pull_request_read` `method: get_check_runs` | `gh pr checks <N>`                                                     | CI status — primary source for merge-blocking `CI` / `test` job; requires classic `repo` PAT (Checks API)         |
+| 3    | `pull_request_read` `method: get_check_runs` | `gh pr checks <N>`                                                     | CI status — primary source for merge-blocking check from consumer `checks.pr_ci_green`; requires classic `repo` PAT (Checks API) |
 | 4    | `pull_request_read` `method: get_diff`       | `gh pr diff <N>`                                                       | Workflow pin verification (`uses_pin_only`, `same_major_only`); lockfile confirmation when file list is ambiguous |
 
 From title/body extract:
@@ -231,15 +244,15 @@ From title/body extract:
 
 ### 4. Classify
 
-Apply [policy-rubric.md](policy-rubric.md) in this order:
+Apply loaded consumer policy facts with [policy-rubric.base.md](../../../.agents/policy-rubric.base.md) in this order:
 
 1. **Defer** triggers
 2. **Review manually** triggers (major semver applies **except** low-risk tooling devDep majors meeting **Low-risk tooling major → agent review**)
 3. Else if **at least one major semver bump** and **Low-risk tooling major → agent review** gates pass → human table **review manually**; packet `decision: agent_review_required`, `merge_authority: allowed_if_no_code_changes`, `risk_class: low_risk_tooling_major`
-4. Else if **all Safe to merge** gates in [policy-rubric.md](policy-rubric.md) are satisfied → **merge**
+4. Else if **all Safe to merge** gates in policy-rubric.base are satisfied → **merge**
 5. Else → **review manually**
 
-Assign **risk** (low / medium / high) per rubric. Derive packet fields per [policy-rubric.md — Packet derivation](policy-rubric.md#packet-derivation) and [packet-schema.md](packet-schema.md). Never execute merges.
+Assign **risk** (low / medium / high) per rubric.base. Derive packet fields per [policy-rubric.base.md — Rubric outcome → packet fields](../../../.agents/policy-rubric.base.md#rubric-outcome--packet-fields) and [packet-schema.md](packet-schema.md). Never execute merges.
 
 ### 5. Report
 
@@ -285,7 +298,7 @@ After the detailed notes, emit machine-readable handoff per [packet-schema.md](p
    - `pr.head_sha` from `get` at classification time (**after** any §2.7 branch update and, when `/renovate-loop --babysit` resolves settling, from the check that returned `CLEAN`)
    - `evidence_checked_at` (ISO8601 when evidence was fetched)
    - `base_freshness` (audit trail from §2.6–§2.7)
-   - `classification.decision`, `merge_authority`, `risk_class` per [Packet derivation](policy-rubric.md#packet-derivation)
+   - `classification.decision`, `merge_authority`, `risk_class` per [policy-rubric.base.md](../../../.agents/policy-rubric.base.md)
    - `evidence` including `pr_file_count`, `package_count`, `lockfile_maintenance`, `lockfile_delta` (with `line_delta_limit`, `within_threshold`, `threshold_flags`), and `workflow_changes` when workflows touched
    - `required_checks` assembled per [check assembly rules](packet-schema.md#required_checks-assembly-classifier)
    - `human_required_if` (full watch list) and `triggered_human_required` (conditions already fired)
@@ -349,7 +362,7 @@ Reference `@.agents/renovate-investigator.md` and the full copy/paste prompt in 
 
 ## References
 
-- Classification policy: [policy-rubric.md](policy-rubric.md)
+- Classification policy: [policy-rubric.base.md](../../../.agents/policy-rubric.base.md) (load consumer `.agents/renovate-policy.yml` first)
 - Execution packet schema: [packet-schema.md](packet-schema.md)
 - Renovate config: `renovate.json`
 - CI workflow: `.github/workflows/ci.yml`
