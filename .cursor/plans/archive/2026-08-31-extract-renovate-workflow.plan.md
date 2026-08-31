@@ -16,12 +16,22 @@ todos:
     status: completed
   - id: pr3-codenames
     content: "PR3 (codenames-ai-guesser): First consumer + portability acceptance test — delete implementation, keep config only"
-    status: pending
+    status: completed
   - id: plan-closure
     content: "Docs-only PR after last slice: add # Shipped note, move plan to .cursor/plans/archive/2026-08-31-extract-renovate-workflow.plan.md"
-    status: pending
+    status: completed
 isProject: false
 ---
+
+# Shipped
+
+Extraction plan completed 2026-08-31.
+
+| Slice | Outcome |
+| --- | --- |
+| **PR1 — portable core** | Authoritative ladder implementation lives in this repo: skills, agents, scripts, tests, rubric base, policy template, runbook. Merged as multipliers-dev/renovate-workflow#2. |
+| **PR2 — distribution adapter** | This repo is the installable Cursor plugin (`.cursor-plugin/plugin.json`) plus a single-plugin marketplace wrapper (`.cursor-plugin/marketplace.json`, `"source": "."`) for GitHub import — not cursor-team-marketplace. Merged as #3 and #5. Adoption documented in [docs/adopt.md](../../docs/adopt.md). |
+| **PR3 — first consumer** | [codenames-ai-guesser](https://github.com/multipliers-dev/codenames-ai-guesser) deleted local ladder implementation; retains `renovate.json`, Renovate workflow YAML, and `.agents/renovate-policy.yml`; adopts plugin install from this repo plus npm/git devDependency for scripts. Merged as multipliers-dev/codenames-ai-guesser#555. |
 
 # Extract portable Renovate workflow
 
@@ -311,7 +321,7 @@ Use a **fresh Agent-mode chat** per slice.
 ### pr1-extract
 
 ```text
-@.cursor/plans/2026-08-31-extract-renovate-workflow.plan.md
+@.cursor/plans/archive/2026-08-31-extract-renovate-workflow.plan.md
 
 Implement PR1 (portable core) only — covers pr1-extract, pr1-policy-investigation, and pr1-rubric-base. Do not start pr2-distribution, pr3-codenames, or plan-closure. Do not archive the plan.
 
@@ -327,7 +337,7 @@ Verification: npm test and npm run typecheck green; fixtures pass; docs/policy-s
 ### pr2-distribution
 
 ```text
-@.cursor/plans/2026-08-31-extract-renovate-workflow.plan.md
+@.cursor/plans/archive/2026-08-31-extract-renovate-workflow.plan.md
 
 Implement slice pr2-distribution only. Prerequisite: PR1 merged and renovate-workflow tagged. Do not start pr3-codenames or plan-closure. Do not archive the plan.
 
@@ -343,7 +353,7 @@ Verification: adoption path documented in docs/adopt.md; no full-tree vendoring 
 ### pr3-codenames
 
 ```text
-@.cursor/plans/2026-08-31-extract-renovate-workflow.plan.md
+@.cursor/plans/archive/2026-08-31-extract-renovate-workflow.plan.md
 
 Implement slice pr3-codenames only in codenames-ai-guesser. Prerequisites: PR1 + PR2 merged; adapter published. Do not start plan-closure. Do not archive the plan.
 
@@ -359,7 +369,7 @@ Verification: portability acceptance test passes — workflow operable after del
 ### plan-closure
 
 ```text
-@.cursor/plans/2026-08-31-extract-renovate-workflow.plan.md
+@.cursor/plans/archive/2026-08-31-extract-renovate-workflow.plan.md
 
 Execute only plan-closure in renovate-workflow.
 

@@ -40,6 +40,6 @@ examples/example-repo/ Synthetic renovate-policy.yml for contract tests
 
 ## Plan
 
-Staged extraction plan: [.cursor/plans/2026-08-31-extract-renovate-workflow.plan.md](.cursor/plans/2026-08-31-extract-renovate-workflow.plan.md)
+Extraction complete. Archived plan: [.cursor/plans/archive/2026-08-31-extract-renovate-workflow.plan.md](.cursor/plans/archive/2026-08-31-extract-renovate-workflow.plan.md)
 
 PR1: portable core. PR2: this repo as the Cursor plugin adapter. PR3: Codenames consumer migration.
