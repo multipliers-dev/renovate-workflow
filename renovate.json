@@ -14,31 +14,9 @@
   },
   "packageRules": [
     {
-      "matchManagers": ["npm"],
-      "groupName": "npm dependencies",
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "pinDigests": true
-    },
-    {
-      "matchManagers": ["npm"],
-      "matchPackageNames": ["typescript", "vitest", "tsx", "yaml"],
-      "groupName": "high-touch tooling"
-    },
-    {
-      "matchManagers": ["npm"],
-      "matchPackageNames": ["/^@types/"],
-      "groupName": "low-risk types",
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "matchManagers": ["npm"],
-      "matchPackageNames": ["husky"],
-      "groupName": "low-risk husky",
-      "matchUpdateTypes": ["minor", "patch"]
     }
   ]
 }

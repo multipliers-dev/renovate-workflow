@@ -8,11 +8,6 @@
   "rangeStrategy": "bump",
   "packageRules": [
     {
-      "matchManagers": ["npm"],
-      "groupName": "npm dependencies",
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "pinDigests": true
