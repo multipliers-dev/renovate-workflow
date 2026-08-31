@@ -2,6 +2,15 @@
   "name": "renovate-workflow",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/multipliers-dev/renovate-workflow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/multipliers-dev/renovate-workflow/issues"
+  },
+  "homepage": "https://github.com/multipliers-dev/renovate-workflow#readme",
   "type": "module",
   "files": [
     "scripts",
