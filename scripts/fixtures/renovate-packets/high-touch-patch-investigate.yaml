@@ -1,0 +1,72 @@
+policy_version: "3"
+
+pr:
+  number: 402
+  title: "fix(deps): update vitest to v4.1.5"
+  url: "https://github.com/multipliers-dev/codenames-ai-guesser/pull/402"
+  branch: renovate/vitest-4.x
+  draft: false
+  head_sha: "cafebabe00000000000000000000000000000000"
+
+evidence_checked_at: "2026-07-15T00:00:00.000Z"
+
+classification:
+  recommendation: review_manually
+  decision: human_required
+  merge_authority: denied
+  risk_class: high_touch_tooling
+  risk_level: high
+
+evidence:
+  packages:
+    - name: vitest
+      from: "^4.1.0"
+      to: "^4.1.5"
+      bump: patch
+      dep_kind: dev
+  changed_files:
+    - package-lock.json
+    - server/package.json
+    - frontend/package.json
+  pr_file_count: 3
+  package_count: 1
+  lockfile_maintenance: false
+  lockfile_delta:
+    additions: 12
+    deletions: 12
+    lockfile_paths_changed: 1
+    line_delta_total: 24
+    line_delta_limit: 800
+    within_threshold: true
+    threshold_flags: []
+  ci:
+    status: green
+    blocking_check: "CI / test"
+    details: "fixture — vitest #402 shape"
+  release_note_flags: []
+  sensitive_paths_touched: []
+  workflow_changes:
+    files: []
+    uses_pin_only: false
+    same_major_only: false
+  rubric_triggers: ["high_touch_package"]
+
+required_checks:
+  - pr_ci_green
+  - post_merge_main_ci_green
+  - lockfile_within_threshold
+
+human_required_if:
+  - implementation_changes_required
+  - ci_failure_unexplained
+  - runtime_behavior_affected
+
+triggered_human_required:
+  - runtime_behavior_affected
+
+stop: true
+stop_reason: runtime_behavior_affected
+stop_causes:
+  - decision_human_required
+  - stop_flag_expected_human_required
+  - triggered_runtime_behavior_affected_sole

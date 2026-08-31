@@ -1,90 +1,89 @@
 # Policy rubric (portable base)
 
-Interpret **consumer** `.agents/renovate-policy.yml`. This file stores **logic only** — not repository facts.
+Interpret **consumer** `.agents/renovate-policy.yml`. This file stores **portable logic** — not repository-specific package lists or CI bindings.
 
 Pair with:
 
 - Consumer `renovate.json` — Renovate bot grouping, schedule, branch prefix
-- Consumer `.agents/renovate-policy.yml` — facts and check bindings
+- Consumer `.agents/renovate-policy.yml` — facts (packages, checks, repo paths, deployment mode)
 - Consumer `.github/workflows/renovate.yml` — how Renovate runs
-
-Do **not** duplicate package lists here. Unlisted packages are **derived** at interpretation time.
+- Classifier skill [policy-rubric.md](../.cursor/skills/renovate-classifier/policy-rubric.md) — full classification workflow (references consumer facts)
 
 ## Sync model
 
 ```
 renovate.json
-     ↕ (optional validation script — PR2+)
-renovate-policy.yml   ← single consumer config source for agent facts
+     ↕ (optional validation — PR2+)
+renovate-policy.yml   ← consumer facts + check bindings
      ↓
 policy-rubric.base.md ← this file (portable interpretation)
 ```
 
-## Classification ladder
+**Unlisted rule:** `package ∉ packages.high_touch ∪ packages.low_risk_tooling` and not covered by runtime scope → `unlisted_package` (`human_required`, investigation-eligible when stop_causes are overridable only).
 
-Given `packages` in consumer policy:
+## Recommendation mapping
 
-| Match | Classification | Default risk class |
+| Classification | Recommendation | Packet `decision` |
 | --- | --- | --- |
-| Name in `packages.high_touch` | `high_touch` | `review_manually` |
-| Name in `packages.low_risk_tooling` | `low_risk_tooling` | `auto_merge_candidate` |
-| Covered by `packages.runtime_rule` and under `repo.workspace_roots` | `runtime` | `review_manually` |
-| No match | `unlisted_package` (derived) | `investigate` |
+| Safe to merge (all gates) | merge | `auto_merge_eligible` |
+| Low-risk tooling major (gates pass) | review manually | `agent_review_required` |
+| Needs human review | review manually | `human_required` |
+| Defer | defer | `defer` |
 
-**Unlisted rule:** `package ∉ high_touch ∪ low_risk_tooling` and not explained by runtime scope → `unlisted_package`.
+## Rubric outcome → packet fields
 
-## Risk classes
+| Rubric outcome | `decision` | `merge_authority` | `risk_class` |
+| --- | --- | --- | --- |
+| Lockfile-only within thresholds | `auto_merge_eligible` | `allowed` | `lockfile_patch` |
+| Low-risk devDep patch/minor | `auto_merge_eligible` | `allowed` | `low_risk_tooling_patch` |
+| GitHub Actions pin same major | `auto_merge_eligible` | `allowed` | `github_action_pin_same_major` |
+| Low-risk tooling major carve-out | `agent_review_required` | `allowed_if_no_code_changes` | `low_risk_tooling_major` |
+| High-touch package | `human_required` | `denied` | `high_touch_tooling` |
+| GitHub Actions major | `human_required` | `denied` | `github_action_major` |
+| Runtime/framework dependency | `human_required` | `denied` | `runtime_dependency` |
+| Unlisted package | `human_required` | `denied` | `unlisted_package` |
+| Lockfile exceeds thresholds | `human_required` | `denied` | `large_lockfile` |
+| Sensitive / analytics / auth paths | `human_required` | `denied` | matching `risk_class` |
+| `renovate.json` changed | `human_required` | `denied` | `renovate_config_change` |
+| Defer triggers | `defer` | `denied` | (inherit highest applicable) |
 
-| Risk class | Meaning | Maintainer may merge when |
-| --- | --- | --- |
-| `auto_merge_candidate` | Low-touch tooling; batch-friendly | Guardrails pass + classification in `merge.batch_allowed_for` |
-| `review_manually` | High-touch or runtime; evidence required | Human or maintainer after review skill packet is complete |
-| `investigate` | Unlisted or ambiguous | Investigator lane completes; re-classify or update policy |
-| `stop` | Hard block | Never merge until cause removed |
+`risk_class` enum must match consumer policy `risk_classes` buckets and [packet-schema.md](../.cursor/skills/renovate-classifier/packet-schema.md).
 
-## Evidence loop (review_manually)
+## Lockfile impact
 
-For `review_manually` PRs, gather evidence before merge:
+- `line_delta_limit`: **2000** when `lockfile_maintenance: true`, else **800** (from consumer `checks.lockfile_within_threshold.thresholds`)
+- Flag `within_threshold: false` when combined line delta exceeds limit or single-package `pr_file_count > 30`
+- Never assign `lockfile_patch` when `within_threshold: false`
 
-1. **Upstream** — release notes / migration guide; map breaking changes
-2. **Usage** — how this repo uses the dependency
-3. **Custom risk** — sensitive paths (`repo.sensitive_paths`) touched or implicated
-4. **Validation** — checks bound in `checks.required` (CI workflow or command)
+## Stop causes
 
-Zero source changes is a **conclusion** after the loop, not an assumption.
+Derive `stop_causes` with [`scripts/lib/derive-stop-causes.ts`](../scripts/lib/derive-stop-causes.ts). Set `stop: true` when `decision` is `human_required` or `defer`, or when `triggered_human_required` is non-empty.
 
-## Guardrail stop causes
+## Investigation lane
 
-Deterministic gates (see `scripts/lib/derive-stop-causes.ts`):
-
-- `policy_version_drift` — packet stale vs active policy
-- `stale_head_sha` — PR moved since classification
-- `merge_authority_denied` — packet not authorized for agent merge
-- `unknown_risk_class` — classifier emitted unrecognized class
-- `unlisted_package` — policy has no bucket for package
-- `required_check_missing` / `required_check_failed` — CI/command gates
+When `risk_class` is `high_touch_tooling` or `unlisted_package`, packet is `stop: true`, and only overridable `stop_causes` remain per consumer `execution_modes.investigation_approved`, route to renovate-investigator. Investigation-approved merge remains restricted to `allowed_paths` in policy.
 
 ## Deployment modes
 
-Read `deployment.mode` from consumer policy:
-
-| Mode | Typical setup |
+| Mode | Renovate identity |
 | --- | --- |
-| `pat_branch` | PAT credential; Renovate branches prefixed `renovate/` |
-| `github_app` | GitHub App installation; workflow mints short-lived tokens |
+| `pat_branch` | Head branch `renovate/*`; PAT owner author (not `app/renovate`) |
+| `github_app` | Author typically `app/renovate` |
 
-Resolve `repo.owner` / `repo.name` from git remote when omitted.
+Resolve `repo.owner` / `repo.name` from git remote when omitted in consumer policy.
 
-## Checks binding
+## Required checks assembly
 
-`checks.required` names are the canonical gate list. Each entry requires `workflow` (GitHub Actions workflow file name) **or** `command` (local verification command). Classifier packets must record each required check status.
+Always include `pr_ci_green` and `post_merge_main_ci_green`. Add conditional checks from consumer `check_assembly.conditional` when applicable changed files are present. Bindings live in consumer `checks.*`.
 
-## Merge authority
+## Guardrails (executor)
 
-When `merge.authority` is `human`, maintainer agent produces recommendations only.
+Deterministic gates in [`scripts/lib/renovate-guardrails.ts`](../scripts/lib/renovate-guardrails.ts):
 
-When `maintainer_agent`, merge proceeds only if:
+- `policy_version` drift
+- `head_sha` stale
+- `merge_authority` / `allowed_paths`
+- `unknown_risk_class`
+- `triggered` / structured `stop_causes`
 
-- Guardrails pass
-- Risk class allows merge for classification
-- Freshness poll confirms current `head_sha`
+Synthetic reference policy for tests: [examples/example-repo/renovate-policy.yml](../examples/example-repo/renovate-policy.yml).

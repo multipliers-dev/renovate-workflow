@@ -1,48 +1,157 @@
-# Renovate policy template
+# Policy sync note: when policy-rubric.md or renovate.json changes, update consumer copy in the same PR.
+# Bump version when merge authority, risk_classes, or check semantics change; packets carry policy_version for drift detection.
+#
+# Copy this file to `.agents/renovate-policy.yml` in a consumer repository.
+# Portable interpretation: `.agents/policy-rubric.base.md`
+# Package lists below are consumer facts — unlisted is derived from absence.
 
-# Copy to `.agents/renovate-policy.yml` in a consumer repository.
-# Facts live here; portable interpretation lives in `policy-rubric.base.md`.
+version: "3"
 
-policy_version: 1
+# risk_class enum — shared with packet-schema.md; direct lookup, no mapping layer
+risk_classes:
+  auto_merge_eligible:
+    - lockfile_patch
+    - low_risk_tooling_patch
+    - github_action_pin_same_major
+  agent_review_required:
+    - low_risk_tooling_major
+  human_required:
+    - high_touch_tooling
+    - github_action_major
+    - runtime_dependency
+    - unlisted_package
+    - analytics_or_telemetry
+    - auth_or_security
+    - sensitive_path_change
+    - large_lockfile
+    - renovate_config_change
+
+merge_authority_rules:
+  allowed:
+    risk_classes: [lockfile_patch, low_risk_tooling_patch, github_action_pin_same_major]
+  allowed_if_no_code_changes:
+    risk_classes: [low_risk_tooling_major]
+    allowed_paths:
+      - "**/package.json"
+      - "package-lock.json"
+  denied:
+    risk_classes:
+      - high_touch_tooling
+      - github_action_major
+      - runtime_dependency
+      - unlisted_package
+      - analytics_or_telemetry
+      - auth_or_security
+      - sensitive_path_change
+      - large_lockfile
+      - renovate_config_change
+
+execution_modes:
+  investigation_approved:
+    eligible_risk_classes:
+      - high_touch_tooling
+      - unlisted_package
+    overridable_classifier_stops:
+      high_touch_tooling:
+        - decision_human_required
+        - stop_flag_expected_human_required
+        - triggered_runtime_behavior_affected_sole
+      unlisted_package:
+        - decision_human_required
+        - stop_flag_expected_human_required
+        - triggered_runtime_behavior_affected_sole
+    requires_investigation_verdict: ready_for_human_merge
+    requires_human_approval_modifier: --approved
+    allowed_paths:
+      - "**/package.json"
+      - "package-lock.json"
+    execute_time_gates:
+      - policy_version
+      - head_sha
+      - merge_authority_paths
+
+check_assembly:
+  requires_always:
+    - pr_ci_green
+    - post_merge_main_ci_green
+  conditional:
+    lockfile_within_threshold:
+      include_when: package-lock.json in changed_files
+    workflow_uses_pin_only:
+      include_when: any .github/workflows/*.yml in changed_files
+    validate_renovate_config:
+      include_when: renovate.json in changed_files
+
+checks:
+  pr_ci_green:
+    when: pre_merge
+    workflow: .github/workflows/ci.yml
+    job: test
+    description: PR head check runs must be green before merge
+  post_merge_main_ci_green:
+    when: post_merge
+    workflow: .github/workflows/ci.yml
+    job: test
+    branch: main
+    description: Main branch CI must be green after merge
+  validate_renovate_config:
+    when: pre_merge
+    workflow: .github/workflows/validate-renovate-config.yml
+    include_when: renovate.json in changed_files
+  workflow_uses_pin_only:
+    when: pre_merge
+    hard_gate: true
+    include_when: any .github/workflows/*.yml in changed_files
+    requires:
+      uses_pin_only: true
+      same_major_only: true
+    description: >
+      Every diff hunk in .github/workflows/*.yml changes only a uses: dependency
+      action version pin within the same major.
+  lockfile_within_threshold:
+    when: pre_merge
+    hard_gate: true
+    include_when: package-lock.json in changed_files
+    thresholds:
+      line_delta_limit_default: 800
+      line_delta_limit_lockfile_maintenance: 2000
+      pr_file_count_single_package_max: 30
+    requires_packet_fields:
+      - evidence.lockfile_maintenance
+      - evidence.pr_file_count
+      - evidence.package_count
+      - evidence.lockfile_delta.line_delta_limit
+    description: >
+      line_delta_total ≤ line_delta_limit (800, or 2000 when lockfile_maintenance).
+      pr_file_count ≤ 30 when package_count == 1.
 
 repo:
-  # Optional — omit to resolve from `git remote get-url origin`.
+  # Optional — omit owner/name to resolve from git remote get-url origin
   owner: example-org
-  name: example-repo
+  name: example-service
+  renovate_branch_prefix: renovate/
   workspace_roots:
     - package.json
   sensitive_paths:
-    - .github/workflows/
-    - src/
+    - src/**
+    - .github/workflows/**
+    - renovate.json
 
 packages:
   high_touch:
     - react
     - vite
-  low_risk_tooling:
     - typescript
-    - vitest
+    - eslint
+  low_risk_tooling:
+    - prettier
     - husky
-  # Any dependency under workspace_roots not matched above is classified as runtime.
-  # Packages matching none of high_touch, low_risk_tooling, or runtime_rule scope
-  # are derived as unlisted_package (investigate lane).
-  runtime_rule: "dependencies under workspace_roots not matched above"
-
-checks:
-  required:
-    - name: ci
-      workflow: ci.yml
-      required: true
-    - name: typecheck
-      command: npm run typecheck
-      required: true
-
-merge:
-  authority: maintainer_agent
-  batch_allowed_for:
-    - low_risk_tooling
+    - lint-staged
+    - "@types/*"
+  # runtime_rule: dependencies under workspace_roots not matched above → runtime_dependency
+  # unlisted: package ∉ high_touch ∪ low_risk_tooling and not runtime scope → unlisted_package
 
 deployment:
-  # pat_branch — PAT + branches under renovate/
-  # github_app — GitHub App installation tokens per workflow run
-  mode: github_app
+  # pat_branch — PAT + renovate/ branch prefix (self-hosted)
+  # github_app — GitHub App installation
+  mode: pat_branch

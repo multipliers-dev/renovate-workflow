@@ -1,6 +1,6 @@
 # renovate-workflow
 
-Portable Renovate merge ladder: classifier → review → maintainer guardrails → investigator escalation.
+Portable Renovate merge ladder extracted from [codenames-ai-guesser](https://github.com/multipliers-dev/codenames-ai-guesser): classify → investigate (when eligible) → maintainer → loop orchestration.
 
 This repository is the **authoritative implementation** (skills, agents, scripts, runbook, policy rubric base). Consumer repositories retain only `renovate.json`, Renovate workflow YAML, and `.agents/renovate-policy.yml`.
 
@@ -22,10 +22,10 @@ npm run typecheck
 
 ```
 docs/                  Runbook + policy setup
-.cursor/skills/        Five renovate skills
-.agents/               Agent prompts, rubric base, templates
-scripts/               Guardrails, freshness poll, tests/fixtures
-examples/example-repo/ Synthetic renovate-policy.yml (PR1 only)
+.cursor/skills/        Five renovate skills + verification assets
+.agents/               Agent prompts, rubric base, policy template, report templates
+scripts/               Guardrails, freshness poll, tests/fixtures (92 tests)
+examples/example-repo/ Synthetic renovate-policy.yml for contract tests
 ```
 
 ## Plan

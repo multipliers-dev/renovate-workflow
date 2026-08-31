@@ -1,78 +1,193 @@
 #!/usr/bin/env node
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
-import { evaluateGuardrails } from "./lib/renovate-guardrails.js";
-import { validateClassifierPacket } from "./lib/renovate-packet.js";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
-function usage(): never {
-  console.error(
-    "usage: renovate-freshness-poll --policy <path> --runs <dir> [--head-sha <sha>]",
-  );
-  process.exit(2);
+import {
+  normalizeGhCheckRunsForExpectedHead,
+  normalizeGhCommitStatusesForExpectedHead,
+  runRenovateBabysit,
+  type CiObservation,
+  type GhCheckRunsResponse,
+  type GhCommitStatusResponse,
+  type MergeObservation,
+  type RenovateBabysitConfig,
+} from "./lib/renovate-freshness-poll.js";
+
+const execFileAsync = promisify(execFile);
+
+type CliOptions = {
+  repo: string;
+  pr: string;
+  expectedHeadSha: string;
+  config: RenovateBabysitConfig;
+};
+
+type GhPrViewResponse = {
+  headRefOid?: string;
+  baseRefOid?: string;
+  mergeStateStatus?: string;
+};
+
+function printUsage(): void {
+  console.error(`Usage: npm exec -- tsx scripts/renovate-freshness-poll.ts --repo <owner/repo> --pr <number> --expected-head <sha>
+
+Runs the Renovate post-update babysit helper and prints one JSON result.
+
+Required:
+  --repo <owner/repo>
+  --pr <number>
+  --expected-head <sha>
+
+Debug-only overrides (do not use from renovate-classifier skill prose):
+  --debug-poll-interval-ms <ms>
+  --debug-ci-budget-ms <ms>
+  --debug-unknown-max <count>
+`);
 }
 
-function parseArgs(argv: string[]) {
-  const args: Record<string, string> = {};
-  for (let i = 2; i < argv.length; i += 1) {
-    const key = argv[i];
-    const value = argv[i + 1];
-    if (!key.startsWith("--") || !value) {
-      usage();
+function readFlagValue(args: string[], index: number, flag: string): string {
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("--")) {
+    throw new Error(`${flag} requires a value`);
+  }
+  return value;
+}
+
+function parsePositiveInteger(value: string, flag: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${flag} must be a positive integer`);
+  }
+  return parsed;
+}
+
+export function parseRenovateFreshnessPollArgs(args: string[]): CliOptions {
+  const options: Partial<CliOptions> & { config: RenovateBabysitConfig } = { config: {} };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    switch (arg) {
+      case "--repo":
+        options.repo = readFlagValue(args, index, arg);
+        index += 1;
+        break;
+      case "--pr":
+        options.pr = readFlagValue(args, index, arg);
+        index += 1;
+        break;
+      case "--expected-head":
+        options.expectedHeadSha = readFlagValue(args, index, arg);
+        index += 1;
+        break;
+      case "--debug-poll-interval-ms":
+        options.config.pollIntervalMs = parsePositiveInteger(readFlagValue(args, index, arg), arg);
+        index += 1;
+        break;
+      case "--debug-ci-budget-ms":
+        options.config.ciBudgetMs = parsePositiveInteger(readFlagValue(args, index, arg), arg);
+        index += 1;
+        break;
+      case "--debug-unknown-max":
+        options.config.unknownMax = parsePositiveInteger(readFlagValue(args, index, arg), arg);
+        index += 1;
+        break;
+      case "--help":
+      case "-h":
+        printUsage();
+        process.exit(0);
+      default:
+        throw new Error(`unknown argument: ${arg}`);
     }
-    args[key.slice(2)] = value;
-    i += 1;
   }
-  if (!args.policy || !args.runs) {
-    usage();
+
+  if (!options.repo || !/^[^/\s]+\/[^/\s]+$/.test(options.repo)) {
+    throw new Error("--repo must be in owner/repo form");
   }
+  if (!options.pr || !/^\d+$/.test(options.pr)) {
+    throw new Error("--pr must be a PR number");
+  }
+  if (!options.expectedHeadSha || options.expectedHeadSha.trim() === "") {
+    throw new Error("--expected-head is required");
+  }
+
   return {
-    policyPath: args.policy,
-    runsDir: args.runs,
-    headSha: args["head-sha"],
+    repo: options.repo,
+    pr: options.pr,
+    expectedHeadSha: options.expectedHeadSha,
+    config: options.config,
   };
 }
 
-function findLatestPacket(runsDir: string): { path: string; packet: unknown } | null {
-  let latest: { path: string; mtimeMs: number; packet: unknown } | null = null;
-  for (const entry of readdirSync(runsDir)) {
-    const fullPath = join(runsDir, entry);
-    if (!statSync(fullPath).isFile() || !entry.endsWith(".json")) {
-      continue;
-    }
-    const packet = JSON.parse(readFileSync(fullPath, "utf8")) as unknown;
-    const mtimeMs = statSync(fullPath).mtimeMs;
-    if (!latest || mtimeMs > latest.mtimeMs) {
-      latest = { path: fullPath, mtimeMs, packet };
-    }
-  }
-  return latest ? { path: latest.path, packet: latest.packet } : null;
+async function ghJson<T>(args: string[]): Promise<T> {
+  const { stdout } = await execFileAsync("gh", args, { maxBuffer: 10 * 1024 * 1024 });
+  return JSON.parse(stdout) as T;
 }
 
-function main() {
-  const { policyPath, runsDir, headSha } = parseArgs(process.argv);
-  const latest = findLatestPacket(runsDir);
-  if (!latest) {
-    console.log("freshness: no packets found");
-    return;
+async function fetchMergeState(options: CliOptions): Promise<MergeObservation> {
+  const response = await ghJson<GhPrViewResponse>([
+    "pr",
+    "view",
+    options.pr,
+    "--repo",
+    options.repo,
+    "--json",
+    "headRefOid,baseRefOid,mergeStateStatus",
+  ]);
+
+  if (!response.mergeStateStatus) {
+    throw new Error("gh pr view did not return mergeStateStatus");
   }
 
-  validateClassifierPacket(latest.packet);
-  const effectiveHeadSha = headSha ?? latest.packet.head_sha;
-  const result = evaluateGuardrails({
-    policyPath,
-    packet: latest.packet,
-    currentHeadSha: effectiveHeadSha,
-  });
+  return {
+    mergeState: response.mergeStateStatus,
+    headSha: response.headRefOid ?? "",
+    baseSha: response.baseRefOid,
+  };
+}
 
-  console.log(`freshness: packet ${latest.path}`);
-  console.log(
-    result.allowedToMerge ? "freshness: current" : "freshness: stale_or_blocked",
+async function fetchCiState(options: CliOptions, expectedHeadSha: string): Promise<CiObservation> {
+  const checkRuns = await ghJson<GhCheckRunsResponse>([
+    "api",
+    `repos/${options.repo}/commits/${expectedHeadSha}/check-runs`,
+  ]);
+  const normalizedCheckRuns = normalizeGhCheckRunsForExpectedHead(checkRuns, expectedHeadSha);
+  if (normalizedCheckRuns.ciState !== "not_found") {
+    return normalizedCheckRuns;
+  }
+
+  const statuses = await ghJson<GhCommitStatusResponse>([
+    "api",
+    `repos/${options.repo}/commits/${expectedHeadSha}/status`,
+  ]);
+  return normalizeGhCommitStatusesForExpectedHead(statuses, expectedHeadSha);
+}
+
+async function main(): Promise<void> {
+  let options: CliOptions;
+  try {
+    options = parseRenovateFreshnessPollArgs(process.argv.slice(2));
+  } catch (error) {
+    printUsage();
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(2);
+  }
+
+  const result = await runRenovateBabysit(
+    { expectedHeadSha: options.expectedHeadSha, config: options.config },
+    {
+      now: () => Date.now(),
+      sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      fetchMergeState: () => fetchMergeState(options),
+      fetchCiState: (expectedHeadSha) => fetchCiState(options, expectedHeadSha),
+    }
   );
-  if (!result.allowedToMerge) {
-    for (const cause of result.stopCauses) {
-      console.log(`stop: ${cause.cause} — ${cause.message}`);
-    }
-  }
+
+  console.log(JSON.stringify(result, null, 2));
 }
 
-main();
+if (require.main === module) {
+  main().catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}

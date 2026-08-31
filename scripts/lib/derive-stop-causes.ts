@@ -1,107 +1,121 @@
-export type ClassifierPacket = {
-  schema_version: number;
-  policy_version: number;
-  pr_number: number;
-  head_sha: string;
-  base_sha: string;
-  package_name: string;
-  classification: string;
-  risk_class: string;
-  merge_authority: "maintainer_agent" | "human";
-  captured_at: string;
-  checks: Array<{ name: string; status: "success" | "failure" | "pending" | "missing" }>;
-  notes?: string;
+/**
+ * Single derivation table for classifier emission and guardrails evaluation.
+ * Keys must match the reference table in the renovate investigation lane plan.
+ */
+
+export const TRIGGER_WATCH_KEYS = [
+  "implementation_changes_required",
+  "lockfile_threshold_exceeded",
+  "ci_failure_unexplained",
+  "runtime_behavior_affected",
+] as const;
+
+export type TriggerWatchKey = (typeof TRIGGER_WATCH_KEYS)[number];
+
+export const KNOWN_STOP_CAUSES = [
+  "decision_human_required",
+  "stop_flag_expected_human_required",
+  "triggered_implementation_changes_required",
+  "triggered_lockfile_threshold_exceeded",
+  "triggered_ci_failure_unexplained",
+  "triggered_runtime_behavior_affected",
+  "triggered_runtime_behavior_affected_sole",
+  "triggered_human_required_unmapped",
+  "decision_defer",
+] as const;
+
+export type StopCauseKey = (typeof KNOWN_STOP_CAUSES)[number];
+
+const KNOWN_STOP_CAUSE_SET = new Set<string>(KNOWN_STOP_CAUSES);
+const TRIGGER_WATCH_KEY_SET = new Set<string>(TRIGGER_WATCH_KEYS);
+
+export type DeriveStopCausesInput = {
+  stop?: boolean;
+  classification?: {
+    decision?: string;
+  };
+  triggered_human_required?: string[];
+  stop_causes?: string[];
 };
 
-export type StopCause =
-  | "policy_version_drift"
-  | "stale_head_sha"
-  | "merge_authority_denied"
-  | "unknown_risk_class"
-  | "unlisted_package"
-  | "required_check_missing"
-  | "required_check_failed";
+export function isKnownStopCause(value: string): value is StopCauseKey {
+  return KNOWN_STOP_CAUSE_SET.has(value);
+}
 
-export type StopCauseRecord = {
-  cause: StopCause;
-  message: string;
-};
+function deriveTriggerStopCauses(triggered: string[]): StopCauseKey[] {
+  const causes: StopCauseKey[] = [];
 
-export function deriveStopCauses(input: {
-  packet: ClassifierPacket;
-  policyVersion: number;
-  currentHeadSha: string;
-  requiredChecks: string[];
-}): StopCauseRecord[] {
-  const causes: StopCauseRecord[] = [];
-
-  if (input.packet.policy_version !== input.policyVersion) {
-    causes.push({
-      cause: "policy_version_drift",
-      message: `packet policy_version ${input.packet.policy_version} != active ${input.policyVersion}`,
-    });
+  if (triggered.some((key) => !TRIGGER_WATCH_KEY_SET.has(key))) {
+    causes.push("triggered_human_required_unmapped");
   }
 
-  if (input.packet.head_sha !== input.currentHeadSha) {
-    causes.push({
-      cause: "stale_head_sha",
-      message: `packet head_sha ${input.packet.head_sha} != current ${input.currentHeadSha}`,
-    });
+  if (triggered.includes("implementation_changes_required")) {
+    causes.push("triggered_implementation_changes_required");
   }
 
-  if (input.packet.merge_authority !== "maintainer_agent") {
-    causes.push({
-      cause: "merge_authority_denied",
-      message: `merge authority is ${input.packet.merge_authority}`,
-    });
+  if (triggered.includes("lockfile_threshold_exceeded")) {
+    causes.push("triggered_lockfile_threshold_exceeded");
   }
 
-  const knownRiskClasses = new Set([
-    "auto_merge_candidate",
-    "review_manually",
-    "investigate",
-    "stop",
-  ]);
-  if (!knownRiskClasses.has(input.packet.risk_class)) {
-    causes.push({
-      cause: "unknown_risk_class",
-      message: `unknown risk_class ${input.packet.risk_class}`,
-    });
+  if (triggered.includes("ci_failure_unexplained")) {
+    causes.push("triggered_ci_failure_unexplained");
   }
 
-  if (input.packet.classification === "unlisted_package") {
-    causes.push({
-      cause: "unlisted_package",
-      message: `package ${input.packet.package_name} is unlisted in policy`,
-    });
-  }
-
-  for (const required of input.requiredChecks) {
-    const check = input.packet.checks.find((entry) => entry.name === required);
-    if (!check) {
-      causes.push({
-        cause: "required_check_missing",
-        message: `required check missing: ${required}`,
-      });
-      continue;
-    }
-    if (check.status === "failure") {
-      causes.push({
-        cause: "required_check_failed",
-        message: `required check failed: ${required}`,
-      });
-    }
-    if (check.status === "pending" || check.status === "missing") {
-      causes.push({
-        cause: "required_check_missing",
-        message: `required check not green: ${required} (${check.status})`,
-      });
+  if (triggered.includes("runtime_behavior_affected")) {
+    if (triggered.length === 1) {
+      causes.push("triggered_runtime_behavior_affected_sole");
+    } else {
+      causes.push("triggered_runtime_behavior_affected");
     }
   }
 
   return causes;
 }
 
-export function shouldStop(causes: StopCauseRecord[]): boolean {
-  return causes.length > 0;
+export function deriveStopCauses(packet: DeriveStopCausesInput): StopCauseKey[] {
+  const causes: StopCauseKey[] = [];
+  const decision = packet.classification?.decision;
+  const triggered = packet.triggered_human_required ?? [];
+
+  if (decision === "defer") {
+    causes.push("decision_defer");
+  }
+
+  if (decision === "human_required") {
+    causes.push("decision_human_required");
+  }
+
+  if (packet.stop === true && decision === "human_required") {
+    causes.push("stop_flag_expected_human_required");
+  }
+
+  causes.push(...deriveTriggerStopCauses(triggered));
+
+  return causes;
+}
+
+export function stopCausesMatchDerivation(packet: DeriveStopCausesInput): boolean {
+  const expectedCauses = deriveStopCauses(packet);
+  const packetCauses = packet.stop_causes ?? [];
+
+  if (packetCauses.length !== expectedCauses.length) {
+    return false;
+  }
+
+  const sortedPacketCauses = [...packetCauses].sort();
+  const sortedExpectedCauses = [...expectedCauses].sort();
+
+  return sortedPacketCauses.every((cause, index) => cause === sortedExpectedCauses[index]);
+}
+
+export function validateStopCausesDerivation(packet: DeriveStopCausesInput): string | null {
+  if (packet.stop !== true) {
+    return null;
+  }
+
+  if (!stopCausesMatchDerivation(packet)) {
+    return "packet stop_causes do not match deriveStopCauses derivation";
+  }
+
+  return null;
 }
