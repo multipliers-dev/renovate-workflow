@@ -30,7 +30,7 @@
     },
     {
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@types/"],
+      "matchPackageNames": ["/^@types/"],
       "groupName": "low-risk types",
       "matchUpdateTypes": ["minor", "patch"]
     },
