@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "policy_version": 1,
+  "pr_number": 42,
+  "head_sha": "abc123def4567890abc123def4567890abc12345",
+  "base_sha": "0000000000000000000000000000000000000000",
+  "package_name": "typescript",
+  "classification": "low_risk_tooling",
+  "risk_class": "auto_merge_candidate",
+  "merge_authority": "maintainer_agent",
+  "captured_at": "2026-08-31T00:00:00.000Z",
+  "checks": [
+    { "name": "ci", "status": "success" },
+    { "name": "typecheck", "status": "success" }
+  ]
+}

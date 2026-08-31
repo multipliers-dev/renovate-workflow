@@ -1,0 +1,35 @@
+policy_version: 1
+
+repo:
+  workspace_roots:
+    - package.json
+  sensitive_paths:
+    - .github/workflows/
+    - src/
+
+packages:
+  high_touch:
+    - react
+    - vite
+  low_risk_tooling:
+    - typescript
+    - vitest
+    - husky
+  runtime_rule: "Any runtime dependency under workspace_roots not matched above"
+
+checks:
+  required:
+    - name: ci
+      workflow: ci.yml
+      required: true
+    - name: typecheck
+      command: npm run typecheck
+      required: true
+
+merge:
+  authority: maintainer_agent
+  batch_allowed_for:
+    - low_risk_tooling
+
+deployment:
+  mode: github_app

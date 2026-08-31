@@ -1,17 +1,21 @@
 {
   "name": "renovate-workflow",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p scripts/tsconfig.json",
     "prepare": "sh scripts/prepare-git-hooks.sh",
     "verify:git-hooks": "sh scripts/verify-git-hooks.sh"
   },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  },
   "devDependencies": {
+    "@types/node": "^24.3.0",
     "husky": "^9.1.7",
     "tsx": "^4.23.12",
     "typescript": "^5.9.2",
