@@ -1,0 +1,5 @@
+{
+  "name": "renovate-workflow",
+  "install": "npm ci",
+  "start": "sh scripts/ensure-hooks.sh"
+}
