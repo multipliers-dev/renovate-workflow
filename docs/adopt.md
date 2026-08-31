@@ -96,6 +96,8 @@ See [policy-setup.md](policy-setup.md). Example facts: [examples/example-repo/re
 
 Add `renovate.json` and `.github/workflows/renovate.yml` for your deployment mode (`pat_branch` vs `github_app`). Set `repo.renovate_branch_prefix` in policy YAML to match.
 
+For `pat_branch`, set the Actions secret `RENOVATE_TOKEN`. A fine-grained PAT with Contents, Pull requests, Issues, Actions, and Workflows write (org repos as needed) is sufficient — this is how multipliers-dev runs it.
+
 See stubs in [examples/example-repo/](../examples/example-repo/).
 
 ### 4. Gitignore audit trail
