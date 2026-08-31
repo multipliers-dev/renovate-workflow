@@ -2,8 +2,8 @@ name: Renovate
 
 on:
   schedule:
-    # Sunday 19:00 UTC — Monday morning Sydney (AEST/AEDT)
-    - cron: "0 19 * * 0"
+    # Sunday 18:00 UTC — Monday 04:00 AEST / 05:00 AEDT (before 6am lockFileMaintenance)
+    - cron: "0 18 * * 0"
   workflow_dispatch:
 
 permissions:
