@@ -12,8 +12,8 @@ todos:
     content: "PR1: Split portable policy-rubric.base.md that interprets consumer renovate-policy.yml"
     status: completed
   - id: pr2-distribution
-    content: "PR2: Discover what must be local; implement adapter (marketplace plugin + minimum local runtime only)"
-    status: pending
+    content: "PR2: Discover what must be local; implement adapter (this repo as installable Cursor plugin + minimum consumer runtime)"
+    status: completed
   - id: pr3-codenames
     content: "PR3 (codenames-ai-guesser): First consumer + portability acceptance test — delete implementation, keep config only"
     status: pending
@@ -48,7 +48,7 @@ The repository integration branch is `main`. Implementation slices start from an
 
 **After opening the PR:** verify the GitHub PR base branch is `main`.
 
-PR3 targets `codenames-ai-guesser` (separate repo); PR1 and PR2 target `renovate-workflow`; PR2 may also span `cursor-team-marketplace`.
+PR3 targets `codenames-ai-guesser` (separate repo). PR1 and PR2 target `renovate-workflow` (this repo is both canonical core and the Cursor plugin).
 
 ---
 
@@ -75,17 +75,14 @@ PR3 is the **portability acceptance test**: if Codenames can delete skills, agen
 
 ```mermaid
 flowchart TB
-  subgraph renovateWorkflow [renovate-workflow — authoritative implementation]
+  subgraph renovateWorkflow [renovate-workflow — authoritative implementation + Cursor plugin]
+    manifest[.cursor-plugin/plugin.json]
     runbook[docs/renovate-workflow.md]
     skills[5 skills + verification assets]
     agents[2 agents + 3 templates]
     scripts[scripts/libs + tests/fixtures]
     rubricBase[policy-rubric.base.md — portable logic]
     policySchema[policy schema + template]
-  end
-
-  subgraph marketplace [cursor-team-marketplace — distribution]
-    plugin[plugins/renovate-workflow/]
   end
 
   subgraph consumer [consumer repo — facts only]
@@ -95,8 +92,7 @@ flowchart TB
     gitignore[.agent-runs/renovate/]
   end
 
-  renovateWorkflow -->|source of truth| marketplace
-  marketplace -->|plugin install| consumer
+  renovateWorkflow -->|plugin install from GitHub| consumer
   policyYml --> renovateJson
   rubricBase -->|interprets| policyYml
 ```
@@ -130,18 +126,18 @@ PR1 research suggests a hybrid is likely — not zero-copy everywhere — but **
 **PR2 discovers the minimum local boundary**, then implements only that. Plausible outcomes (not chosen in advance):
 
 ```text
-Cursor plugin                    consumer repo
-├── skills                       ├── renovate.json
-├── agents                       ├── renovate-policy.yml
-├── methodology                  └── @multipliers-dev/renovate-workflow  (executable primitives only)
-└── templates
+This repo (plugin + npm package)         consumer repo
+├── .cursor-plugin/plugin.json           ├── renovate.json
+├── .cursor/skills/                      ├── renovate-policy.yml
+├── .agents/ (portable)                  └── renovate-workflow npm/git dep (scripts only)
+└── scripts/
 ```
 
 …or, if agent resolution requires local files, copy **those specific adapter artifacts** — still not a full-tree vendoring default.
 
 **Explicitly deferred to PR2:** npm package vs minimal bootstrap vs local agent copies vs other adapter shape. Full `install-to-repo.sh` vendoring remains last resort only if lighter options fail verification.
 
-**Invariant:** renovate-workflow repo stays canonical; cursor-team-marketplace is a distribution adapter, not a second source of truth.
+**Invariant:** renovate-workflow repo stays canonical for core and Cursor plugin distribution. Optional org marketplaces (e.g. cursor-team-marketplace) are catalog convenience only — not a second source of truth.
 
 **Do not build distribution tooling in PR1.**
 

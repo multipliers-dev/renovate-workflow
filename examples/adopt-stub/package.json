@@ -1,0 +1,12 @@
+{
+  "name": "example-consumer",
+  "private": true,
+  "description": "Minimal consumer package.json for Renovate ladder adoption (see docs/adopt.md)",
+  "devDependencies": {
+    "renovate-workflow": "github:multipliers-dev/renovate-workflow",
+    "tsx": "^4.23.12"
+  },
+  "scripts": {
+    "renovate:freshness-poll": "tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts"
+  }
+}
