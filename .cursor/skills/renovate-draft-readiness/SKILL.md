@@ -271,6 +271,6 @@ Post:
 - Comment template: [comment-template.md](comment-template.md)
 - Verification: [verification.md](verification.md)
 - Classifier identity / active queue: [renovate-classifier/SKILL.md](../renovate-classifier/SKILL.md)
-- Policy preview scope: [readiness-rubric.md](readiness-rubric.md) §5 (package lists in [policy-rubric.md](../renovate-classifier/policy-rubric.md); no merge recommendations)
+- Policy preview scope: [readiness-rubric.md](readiness-rubric.md) §5 (consumer `.agents/renovate-policy.yml` + [policy-rubric.base.md](../../../.agents/policy-rubric.base.md); no merge recommendations)
 - Policy file: [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml)
 - Runbook: [docs/renovate-workflow.md](../../../docs/renovate-workflow.md)

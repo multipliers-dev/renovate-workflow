@@ -36,10 +36,11 @@ Lightweight **risk-class / likely ladder route** label only. Draft readiness ver
 
 **Allowed sources (read-only subsets):**
 
-- [policy-rubric.md](../renovate-classifier/policy-rubric.md) **Package lists** and the `risk_class` column of its packet-derivation tables — to name the package bucket
-- [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml) — for listed high-touch / path hints when useful
+- Consumer [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml) — `packages.high_touch`, `packages.low_risk_tooling`, `repo.sensitive_paths`, `repo.analytics_paths`, `repo.auth_paths` for package/path buckets
+- [policy-rubric.base.md](../../../.agents/policy-rubric.base.md) — `risk_class` column of [Rubric outcome → packet fields](../../../.agents/policy-rubric.base.md#rubric-outcome--packet-fields) to name the likely ladder route
+- [`scripts/lib/renovate-policy-facts.ts`](../../../scripts/lib/renovate-policy-facts.ts) — programmatic package/path lookup when helpful
 
-**Forbidden from policy-rubric (classifier-only):**
+**Forbidden from classifier rubric (classifier-only):**
 
 - “Apply this rubric only within the renovate-classifier skill workflow” deliverables
 - Recommendation mapping outcomes: **merge** / **review manually** / **defer**

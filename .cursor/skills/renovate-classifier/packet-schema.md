@@ -63,7 +63,7 @@ evidence:
   changed_files: ["package-lock.json", ...]
   pr_file_count: 0 # total files from get_files (PR-wide; used for files_over_30)
   package_count: 1 # number of packages bumped in PR (1 = single-package)
-  lockfile_maintenance: true | false # Renovate lock file maintenance PR (see policy-rubric Packet derivation)
+  lockfile_maintenance: true | false # Renovate lock file maintenance PR (see policy-rubric.base Lockfile impact)
   lockfile_delta:
     additions: 0
     deletions: 0
@@ -172,7 +172,7 @@ Shared with `.agents/renovate-policy.yml`. The executor looks up the packet valu
 | `sensitive_path_change`        | `human_required`        | `denied`                     |
 | `renovate_config_change`       | `human_required`        | `denied`                     |
 
-Full rubric → packet mapping: [policy-rubric.md — Packet derivation](policy-rubric.md#packet-derivation).
+Full rubric → packet mapping: [policy-rubric.base.md — Rubric outcome → packet fields](../../../.agents/policy-rubric.base.md#rubric-outcome--packet-fields).
 
 ---
 
@@ -242,14 +242,14 @@ Do **not** add `lockfile_within_threshold` when lockfile unchanged (e.g. workflo
 - **`lockfile_within_threshold`** — hard gate: `evidence.lockfile_delta.within_threshold` must be `true` per rubric **Lockfile impact**. If false → `risk_class: large_lockfile`, `triggered_human_required: [lockfile_threshold_exceeded]`.
 - **`workflow_uses_pin_only`** — hard gate: every workflow diff hunk must be a `uses:` pin **within the same Action major**. Any non-`uses:` edit → `triggered_human_required: [implementation_changes_required]`, `merge_authority: denied`. Action major bump → `risk_class: github_action_major`, `decision: human_required`, `triggered_human_required: [implementation_changes_required]`.
 - **`validate_renovate_config`** — config validation workflow green.
-- **`pr_ci_green`** — maps to `CI` / `test` on the PR via `.github/workflows/ci.yml`.
-- **`post_merge_main_ci_green`** — main branch CI after merge.
+- **`pr_ci_green`** — merge-blocking check from consumer `checks.pr_ci_green` (`workflow`, `job`).
+- **`post_merge_main_ci_green`** — main branch CI after merge (consumer `checks.post_merge_main_ci_green`).
 
 ---
 
 ## Lockfile gates
 
-Derive from [policy-rubric.md — Lockfile impact](policy-rubric.md#lockfile-impact):
+Derive from [policy-rubric.base.md — Lockfile impact](../../../.agents/policy-rubric.base.md#lockfile-impact) and consumer `checks.lockfile_within_threshold.thresholds`:
 
 - Set `lockfile_maintenance: true` when Renovate PR title/body indicates lock file maintenance (e.g. "Lock file maintenance") **or** changed files are lockfiles only with no `package.json` version bumps.
 - Set `line_delta_limit` to **2000** when `lockfile_maintenance: true`, else **800**.

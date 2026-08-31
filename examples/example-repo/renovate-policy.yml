@@ -1,4 +1,4 @@
-# Policy sync note: when policy-rubric.md or renovate.json changes, update this file in the same PR.
+# Policy sync note: when policy-rubric.base.md or renovate.json changes, update this file in the same PR.
 # Bump version when merge authority, risk_classes, or check semantics change; packets carry policy_version for drift detection.
 version: "3"
 
@@ -125,7 +125,7 @@ checks:
       - evidence.lockfile_delta.line_delta_limit
     description: >
       line_delta_total ≤ line_delta_limit (800, or 2000 when lockfile_maintenance).
-      pr_file_count ≤ 30 when package_count == 1. Mirrors policy-rubric Lockfile impact.
+      pr_file_count ≤ 30 when package_count == 1. Mirrors policy-rubric.base Lockfile impact.
 
 repo:
   owner: example-org

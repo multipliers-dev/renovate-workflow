@@ -224,7 +224,7 @@ If the maintainer stops for ambiguity, default to **manual review** on GitHub.
 
 ## What can be merged automatically (summary)
 
-Full rules live in [`.agents/renovate-policy.yml`](../.agents/renovate-policy.yml) and the classifier rubric [`policy-rubric.md`](../.cursor/skills/renovate-classifier/policy-rubric.md).
+Full rules live in consumer [`.agents/renovate-policy.yml`](../.agents/renovate-policy.template.yml) (facts) and portable interpretation [`.agents/policy-rubric.base.md`](../.agents/policy-rubric.base.md). Classifier entrypoint: [`policy-rubric.md`](../.cursor/skills/renovate-classifier/policy-rubric.md).
 
 | Category               | Examples                                                                                                                                                      |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |

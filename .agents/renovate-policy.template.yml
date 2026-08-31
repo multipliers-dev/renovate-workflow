@@ -1,4 +1,4 @@
-# Policy sync note: when policy-rubric.md or renovate.json changes, update consumer copy in the same PR.
+# Policy sync note: when policy-rubric.base.md or renovate.json changes, update consumer copy in the same PR.
 # Bump version when merge authority, risk_classes, or check semantics change; packets carry policy_version for drift detection.
 #
 # Copy this file to `.agents/renovate-policy.yml` in a consumer repository.
