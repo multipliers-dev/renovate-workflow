@@ -48,11 +48,12 @@ flowchart LR
 
 ## Prerequisites
 
-1. **GitHub MCP or authenticated `gh` CLI** — required when classifying or executing Renovate PRs.
+1. **GitHub MCP or authenticated `gh` CLI (operator credential)** — required when classifying or executing Renovate PRs. This is your Cursor MCP token or `gh auth`, not the Renovate bot Actions secret.
    - **MCP (preferred in packet workflow):** read-only endpoint for classifier (`https://api.githubcopilot.com/mcp/readonly`); maintainer needs merge tools (write access).
    - **`gh` fallback:** read-only for most classifier steps; classifier also needs **write** access for `gh pr update-branch` when a PR is `BEHIND`; maintainer may use `gh pr merge --merge` when all gates pass (see merge authority guard below). This repo allows **merge commits only** — never `--squash` or `--rebase`.
-2. **Classic `repo` PAT** — required for Checks API (`get_check_runs` / `gh pr checks`). Fine-grained PATs return `403` on check runs.
-3. **Cursor Agent mode** for the maintainer step (fresh chat per PR).
+2. **Classic `repo` PAT (operator MCP / `gh`)** — required for Checks API (`get_check_runs` / `gh pr checks`). Fine-grained PATs return `403` on check runs. Configure in `~/.cursor/mcp.json` or via authenticated `gh`; this is separate from `secrets.RENOVATE_TOKEN`.
+3. **Renovate bot token (`pat_branch`)** — a separate GitHub Actions secret `RENOVATE_TOKEN` for self-hosted Renovate. A fine-grained PAT with Contents, Pull requests, Issues, Actions, and Workflows write (org repos as needed) is sufficient; classic `repo` scope is optional for the bot.
+4. **Cursor Agent mode** for the maintainer step (fresh chat per PR).
 
 After updating MCP tokens or `gh` auth, fully quit and restart Cursor if needed.
 
