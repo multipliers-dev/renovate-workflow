@@ -7,9 +7,38 @@ todos:
     status: completed
   - id: plan-closure
     content: "Docs-only PR after implementation: add # Shipped note, move plan to .cursor/plans/archive/2026-08-31-public-consumption-polish.plan.md"
-    status: pending
+    status: completed
 isProject: false
 ---
+
+# Shipped
+
+Public-consumption polish plan completed 2026-08-31.
+
+| Slice | Outcome |
+| --- | --- |
+| **public-readiness** | External-adopter README and docs, MIT license, security reporting, issue templates, expanded `examples/example-repo/`, and versioning notes. Merged as [multipliers-dev/renovate-workflow#8](https://github.com/multipliers-dev/renovate-workflow/pull/8) at `c67079f69045799458f515c014d9bb6d880f967e`. |
+| **plan-closure** | Docs-only archive (this PR). |
+
+**What actually shipped (corrections vs plan text):**
+
+- **README** — product-value lead, classifier-only Quick start, separate loop/babysit helpers section, primary doc path, no History section (extraction history not moved to README footer).
+- **Adoption docs** — [docs/adopt.md](../../docs/adopt.md), [docs/policy-setup.md](../../docs/policy-setup.md), [docs/renovate-workflow.md](../../docs/renovate-workflow.md), [docs/distribution-discovery.md](../../docs/distribution-discovery.md), [AGENTS.md](../../AGENTS.md) de-internalized; classifier path first; npm/git helper optional for loop/babysit only. Policy template copy in adopt.md is from the plugin path in Quick start; `node_modules/` copy is documented only as an optional alternative when enabling helpers — not a node_modules-first policy workflow.
+- **Public contract** — consumption + feedback (use, inspect, fork, report issues). **No** community contribution model: `CONTRIBUTING.md` and `.github/pull_request_template.md` were **removed before merge** and were not re-added.
+- **LICENSE** — MIT; copyright `Copyright (c) 2026 Michael Truong` (aligned with cursor-team-marketplace), not multipliers-dev.
+- **SECURITY.md** — private reporting via GitHub Security Advisories only; no SLA or acknowledgement-before-disclosure language.
+- **Issue templates** — `.github/ISSUE_TEMPLATE/bug_report.md` and `documentation.md`.
+- **Example consumer** — [examples/example-repo/](../../examples/example-repo/) README, `renovate.json`, workflow stub, policy YAML comments; synthetic `example-org/example-service` policy unchanged (tests depend on path).
+- **Versioning** — [docs/versioning.md](../../docs/versioning.md); `package.json` `"license": "MIT"` plus `repository` / `bugs` / `homepage`; no tag or GitHub release published.
+
+**npm/git helper scope:** required for `/renovate-loop --babysit` and the freshness poll CLI — **not** for classifier-only evaluation or plain `/renovate-loop`.
+
+**Deferred (out of scope):**
+
+- GitHub About description / topics / social preview (suggested in PR body only; not mutated in-repo)
+- npm publish, GitHub release, or tags
+- `CODE_OF_CONDUCT.md`
+- New ladder capabilities, packet fields, or policy semantics
 
 # Public-consumption polish for renovate-workflow
 
@@ -239,7 +268,7 @@ Use a **fresh Agent-mode chat** per slice.
 ### public-readiness
 
 ```text
-@.cursor/plans/2026-08-31-public-consumption-polish.plan.md
+@.cursor/plans/archive/2026-08-31-public-consumption-polish.plan.md
 
 Implement slice public-readiness only. Do not start plan-closure. Do not archive the plan.
 
@@ -255,7 +284,7 @@ Verification: npm test and npm run typecheck; docs link/consistency audit; no cu
 ### plan-closure
 
 ```text
-@.cursor/plans/2026-08-31-public-consumption-polish.plan.md
+@.cursor/plans/archive/2026-08-31-public-consumption-polish.plan.md
 
 Execute only plan-closure.
 
