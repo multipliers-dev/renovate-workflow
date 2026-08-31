@@ -1,6 +1,6 @@
 # Agent instructions
 
-Portable Renovate merge ladder — authoritative implementation extracted from codenames-ai-guesser and generalized for consumer repositories.
+Portable Renovate merge ladder — authoritative implementation for consumer repositories.
 
 ## Commands
 
@@ -41,5 +41,4 @@ Portable Renovate merge ladder — authoritative implementation extracted from c
 
 - Pre-commit runs `npm test` and `npm run typecheck`; do not bypass hooks.
 - Generalization removes repository-specific assumptions, not ladder semantics.
-- No distribution tooling or install scripts in PR1 scope.
 - Commit in small, logical steps with clear messages.

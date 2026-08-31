@@ -1,0 +1,36 @@
+# Representative Renovate workflow stub — customize for your deployment mode.
+#
+# pat_branch: self-hosted Renovate via GitHub Actions + PAT; PRs use renovate/ prefix;
+#             authored by PAT owner (not app/renovate). This workflow runs Renovate on schedule.
+#
+# github_app: hosted Renovate / GitHub App; author is typically app/renovate.
+#             You may not need this workflow — the app runs externally. Keep the file commented
+#             or delete it if unused; set deployment.mode: github_app in renovate-policy.yml.
+
+name: Renovate
+
+on:
+  schedule:
+    # Adjust timezone and cadence for your team
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # pat_branch only — uncomment and set RENOVATE_TOKEN (classic repo PAT)
+      # - name: Run Renovate
+      #   uses: renovatebot/github-action@v41.0.7
+      #   with:
+      #     configurationFile: renovate.json
+      #     token: ${{ secrets.RENOVATE_TOKEN }}
+
+      - name: Placeholder (replace with Renovate step for pat_branch)
+        run: echo "Configure Renovate for pat_branch or use github_app mode"

@@ -1,5 +1,7 @@
 # Policy sync note: when policy-rubric.base.md or renovate.json changes, update this file in the same PR.
 # Bump version when merge authority, risk_classes, or check semantics change; packets carry policy_version for drift detection.
+#
+# ADOPTER: Copy to .agents/renovate-policy.yml in your repo. Customize sections marked below.
 version: "3"
 
 # risk_class enum — shared with packet-schema.md; direct lookup, no mapping layer
@@ -84,6 +86,7 @@ check_assembly:
       include_when: renovate.json in changed_files
 
 checks:
+  # ADOPTER: Set workflow/job names to match YOUR CI (see .github/workflows/ in your repo)
   pr_ci_green:
     when: pre_merge
     workflow: .github/workflows/ci.yml
@@ -128,9 +131,12 @@ checks:
       pr_file_count ≤ 30 when package_count == 1. Mirrors policy-rubric.base Lockfile impact.
 
 repo:
+  # ADOPTER: Omit owner/name to resolve from git remote, or set explicitly
   owner: example-org
   name: example-service
+  # ADOPTER: Must match renovate.json branchPrefix (e.g. renovate/ for pat_branch)
   renovate_branch_prefix: renovate/
+  # ADOPTER: package.json paths that define runtime scope for dependency classification
   workspace_roots:
     - package.json
     - apps/server/package.json
@@ -144,12 +150,14 @@ repo:
   auth_paths: []
 
 packages:
+  # ADOPTER: Frameworks and tools that always need human/investigation path
   high_touch:
     - react
     - vite
     - eslint
     - typescript
     - "@playwright/test"
+  # ADOPTER: Dev-only tooling eligible for auto-merge on patch/minor (supports * globs)
   low_risk_tooling:
     - prettier
     - husky
@@ -159,4 +167,5 @@ packages:
   # unlisted: devDependency not matched above; investigation-eligible when stop_causes overridable
 
 deployment:
+  # ADOPTER: pat_branch (self-hosted + PAT) or github_app (hosted Renovate app)
   mode: pat_branch

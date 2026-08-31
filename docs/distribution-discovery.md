@@ -1,8 +1,10 @@
-# Distribution discovery (PR2 Phase A)
+# Distribution discovery — architecture rationale
 
-Evidence for the minimum local boundary when adopting the Renovate ladder via **Cursor plugin install** from [renovate-workflow](https://github.com/multipliers-dev/renovate-workflow) — without vendoring the full ~40-file tree or routing through a separate marketplace mirror repo.
+> **Maintainer deep-dive.** New adopters should follow [README](../README.md) → [adopt.md](adopt.md) → [policy-setup.md](policy-setup.md) → [renovate-workflow.md](renovate-workflow.md). This document explains *why* the install boundary looks the way it does.
 
-**Precedent:** [Cursor multi-plugin repositories](https://cursor.com/docs/reference/plugins#cursor-multi-plugin-repositories) — a repo can ship `.cursor-plugin/marketplace.json` plus per-plugin `.cursor-plugin/plugin.json`. GitHub import (`/add-plugin <url>` or Customize → Plugins → Add → From GitHub) imports the **marketplace**, then the user installs listed plugins. This repo uses that pattern as a **single-plugin marketplace wrapper** (`"source": "."` → root `.cursor-plugin/plugin.json`). That is a **local/non-team** marketplace import, not Cursor's public marketplace and not an org Team Marketplace catalog (e.g. cursor-team-marketplace).
+Evidence for the minimum local boundary when adopting the Renovate ladder via **Cursor plugin install** from [renovate-workflow](https://github.com/multipliers-dev/renovate-workflow) — without vendoring the full tree or routing through a separate marketplace mirror repo.
+
+**Precedent:** [Cursor multi-plugin repositories](https://cursor.com/docs/reference/plugins#cursor-multi-plugin-repositories) — a repo can ship `.cursor-plugin/marketplace.json` plus per-plugin `.cursor-plugin/plugin.json`. GitHub import (`/add-plugin <url>` or Customize → Plugins → Add → From GitHub) imports the **marketplace**, then the user installs listed plugins. This repo uses that pattern as a **single-plugin marketplace wrapper** (`"source": "."` → root `.cursor-plugin/plugin.json`). That is a **local/non-team** marketplace import, not Cursor's public marketplace and not an org Team Marketplace catalog.
 
 ---
 

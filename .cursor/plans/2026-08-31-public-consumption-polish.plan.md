@@ -4,7 +4,7 @@ overview: "Make multipliers-dev/renovate-workflow understandable, credible, and 
 todos:
   - id: public-readiness
     content: "Single implementation PR: README Quick start, adopt docs, MIT hygiene, example consumer, versioning notes"
-    status: pending
+    status: completed
   - id: plan-closure
     content: "Docs-only PR after implementation: add # Shipped note, move plan to .cursor/plans/archive/2026-08-31-public-consumption-polish.plan.md"
     status: pending
