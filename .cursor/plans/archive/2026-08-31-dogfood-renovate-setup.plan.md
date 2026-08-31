@@ -7,9 +7,37 @@ todos:
     status: completed
   - id: plan-closure
     content: "Docs-only PR after implementation: add # Shipped note, move plan to .cursor/plans/archive/2026-08-31-dogfood-renovate-setup.plan.md"
-    status: pending
+    status: completed
 isProject: false
 ---
+
+# Shipped
+
+Dogfood Renovate setup plan completed 2026-08-31.
+
+| Slice | Outcome |
+| --- | --- |
+| **dogfood-setup** | Consumer policy, bot config, digest-pinned workflows, gitignore, and first-party freshness-poll script. Merged as [multipliers-dev/renovate-workflow#11](https://github.com/multipliers-dev/renovate-workflow/pull/11) at `64a6d6805449e6bf95bff4cf377bbc30b55f9381`. |
+| **plan-closure** | Docs-only archive (this PR). |
+
+**What actually shipped:**
+
+- **[`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml)** — consumer facts for `multipliers-dev/renovate-workflow`; `tsx` on `packages.high_touch` (interpreter for first-party ladder CLIs); CI checks bound to `.github/workflows/ci.yml` job `test`; `deployment.mode: pat_branch`.
+- **[`renovate.json`](../../renovate.json)** — `config:recommended`, `branchPrefix: renovate/`, Sydney timezone, `lockFileMaintenance` Monday morning, GitHub Actions **`pinDigests: true`**, npm groups aligned with policy buckets.
+- **Workflows** — digest-pinned `uses:` (`owner/action@<sha> # vX.Y.Z`) in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/renovate.yml`](../../.github/workflows/renovate.yml), and [`.github/workflows/validate-renovate-config.yml`](../../.github/workflows/validate-renovate-config.yml); self-hosted Renovate with `RENOVATE_TOKEN`, `workflow_dispatch`, and weekly cron.
+- **[`.gitignore`](../../.gitignore)** — `.agent-runs/renovate/`.
+- **[`package.json`](../../package.json)** — `"renovate:freshness-poll": "tsx scripts/renovate-freshness-poll.ts"`; **no** `renovate-workflow` git self-dependency.
+
+**Follow-up fixes on #11 before merge:**
+
+- **`renovate.json`** — `@types/*` grouping uses `matchPackageNames: ["/^@types/"]` instead of `matchPackagePatterns`; `renovate-config-validator --strict` rejects the patterns form.
+- **`.github/workflows/renovate.yml` cron** — `0 18 * * 0` (Sunday 18:00 UTC) instead of `0 19 * * 0`; the earlier schedule was Monday 06:00 AEDT, outside the `lockFileMaintenance` window (`before 6am on Monday` in Australia/Sydney).
+
+**Deferred (out of scope for dogfood-setup and plan-closure):**
+
+- GitHub secret `RENOVATE_TOKEN` on `multipliers-dev/renovate-workflow`
+- First manual **Actions → Renovate → workflow_dispatch** run (blocked on secret)
+- Post-merge **installed-plugin** classifier acceptance — in-tree `.cursor/skills/` is sufficient for development but is not the distribution-path check; run `/renovate-classifier` once from a workspace where the plugin resolves through marketplace install
 
 # Dogfood Renovate on renovate-workflow
 
@@ -214,7 +242,7 @@ Use a **fresh Agent-mode chat** per slice. Each default frontmatter todo has exa
 ### dogfood-setup
 
 ```text
-@.cursor/plans/2026-08-31-dogfood-renovate-setup.plan.md
+@.cursor/plans/archive/2026-08-31-dogfood-renovate-setup.plan.md
 
 Implement slice dogfood-setup only. Do not start plan-closure. Do not archive the plan.
 
@@ -230,7 +258,7 @@ Verification: npm test and npm run typecheck; npm run renovate:freshness-poll --
 ### plan-closure
 
 ```text
-@.cursor/plans/2026-08-31-dogfood-renovate-setup.plan.md
+@.cursor/plans/archive/2026-08-31-dogfood-renovate-setup.plan.md
 
 Execute only plan-closure.
 
