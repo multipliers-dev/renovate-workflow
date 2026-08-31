@@ -104,7 +104,6 @@ Also:
 
 - [docs/versioning.md](docs/versioning.md) — version alignment and git dependency pinning
 - [docs/distribution-discovery.md](docs/distribution-discovery.md) — architecture rationale (maintainer deep-dive)
-- [CONTRIBUTING.md](CONTRIBUTING.md) — development and contribution guidelines
 - [AGENTS.md](AGENTS.md) — agent command reference
 
 ---
