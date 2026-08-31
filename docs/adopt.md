@@ -9,7 +9,7 @@ Install the **Cursor plugin** from this repository for skills, agent docs, templ
 | Layer | Source | Consumer action |
 | --- | --- | --- |
 | Skills, runbook, portable rubric, agent prompts, report templates | **This repo as a Cursor plugin** | Import marketplace (step 1), then install the `renovate-workflow` plugin (step 2) |
-| Executable TypeScript (`scripts/lib/*`, freshness poll CLI) | **Same repo via npm/git** | `devDependencies` when using loop/babysit (see [Enable loop helpers](#enable-loop--babysit-helpers)) |
+| Executable TypeScript (`scripts/lib/*`, freshness poll CLI) | **Same repo via npm/git** | `devDependencies` when using `--babysit` or the freshness poll CLI (see [Enable loop / babysit helpers](#enable-loop--babysit-helpers)) |
 | Policy facts, Renovate bot config, CI workflow | **Your repo** | One-time copy + customize |
 
 This repository is the **canonical implementation**, a **single-plugin marketplace** (`.cursor-plugin/marketplace.json`), and the **installable Cursor plugin** (`.cursor-plugin/plugin.json`). Skills and agents stay at `.cursor/skills` and `.agents` in this repo — there is no nested `plugins/` mirror tree.
@@ -109,7 +109,7 @@ Reports are written per run; never commit them.
 
 ## Enable loop / babysit helpers
 
-Add when you need `/renovate-loop`, `/renovate-loop --babysit`, or the freshness poll CLI. Skip this section if you only use the classifier.
+Add when you need `/renovate-loop --babysit` or the freshness poll CLI. Plain `/renovate-loop` uses the plugin only. Skip this section if you only use the classifier.
 
 In the consumer repo `package.json`:
 
