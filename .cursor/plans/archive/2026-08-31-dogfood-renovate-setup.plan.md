@@ -35,8 +35,7 @@ Dogfood Renovate setup plan completed 2026-08-31.
 
 **Deferred (out of scope for dogfood-setup and plan-closure):**
 
-- GitHub secret `RENOVATE_TOKEN` on `multipliers-dev/renovate-workflow` — fine-grained org PAT (not classic `repo`); first `workflow_dispatch` succeeded 2026-08-31
-- First manual **Actions → Renovate → workflow_dispatch** run — succeeded 2026-08-31 (https://github.com/multipliers-dev/renovate-workflow/actions/runs/33365600191)
+- GitHub secret `RENOVATE_TOKEN` on `multipliers-dev/renovate-workflow` — fine-grained org PAT (not classic `repo`); first `workflow_dispatch` succeeded 2026-08-31 (https://github.com/multipliers-dev/renovate-workflow/actions/runs/33365600191)
 - Post-merge **installed-plugin** classifier acceptance — in-tree `.cursor/skills/` is sufficient for development but is not the distribution-path check; run `/renovate-classifier` once from a workspace where the plugin resolves through marketplace install
 
 # Dogfood Renovate on renovate-workflow
