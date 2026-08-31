@@ -23,7 +23,7 @@ Dogfood Renovate setup plan completed 2026-08-31.
 **What actually shipped:**
 
 - **[`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml)** — consumer facts for `multipliers-dev/renovate-workflow`; `tsx` on `packages.high_touch` (interpreter for first-party ladder CLIs); CI checks bound to `.github/workflows/ci.yml` job `test`; `deployment.mode: pat_branch`.
-- **[`renovate.json`](../../renovate.json)** — `config:recommended`, `branchPrefix: renovate/`, Sydney timezone, `lockFileMaintenance` Monday morning, GitHub Actions **`pinDigests: true`**, npm groups aligned with policy buckets.
+- **[`renovate.json`](../../renovate.json)** — `config:recommended`, `branchPrefix: renovate/`, Sydney timezone, `lockFileMaintenance` Monday morning, GitHub Actions **`pinDigests: true`**. *(Historical note: an early dogfood revision mirrored policy risk buckets in npm `groupName` rules; superseded by topology-only grouping — see PR separating grouping from risk classification.)*
 - **Workflows** — digest-pinned `uses:` (`owner/action@<sha> # vX.Y.Z`) in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/renovate.yml`](../../.github/workflows/renovate.yml), and [`.github/workflows/validate-renovate-config.yml`](../../.github/workflows/validate-renovate-config.yml); self-hosted Renovate with `RENOVATE_TOKEN`, `workflow_dispatch`, and weekly cron.
 - **[`.gitignore`](../../.gitignore)** — `.agent-runs/renovate/`.
 - **[`package.json`](../../package.json)** — `"renovate:freshness-poll": "tsx scripts/renovate-freshness-poll.ts"`; **no** `renovate-workflow` git self-dependency.
@@ -141,9 +141,8 @@ Start from the example stub, then tighten for this small single-package repo:
 - `extends: ["config:recommended"]`, `branchPrefix: "renovate/"`, `timezone: "Australia/Sydney"`
 - `dependencyDashboard: true`, modest `prHourlyLimit` / `prConcurrentLimit`
 - `lockFileMaintenance` Monday morning Sydney
-- Group npm patch/minor; group GitHub Actions
-- `packageRules` for `github-actions`: **`pinDigests: true`** (required — this is the convention `workflow_uses_pin_only` / action-pin classification expects)
-- Optional small groups for typescript/vitest/`tsx`/`yaml` vs husky/`@types` — keep groups aligned with **this** policy’s buckets
+- Group GitHub Actions with **`pinDigests: true`** (required — this is the convention `workflow_uses_pin_only` / action-pin classification expects)
+- Individual npm PRs by default; add npm groups only for genuine dependency stacks, **not** policy risk buckets
 
 ### 3. Workflow `uses:` convention — digest-pinned, deterministic
 

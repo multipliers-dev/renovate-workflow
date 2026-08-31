@@ -244,6 +244,8 @@ From title/body extract:
 
 ### 4. Classify
 
+Renovate `groupName` (if present) describes batching topology only — **not** `risk_class`. Classify from bumped package names, semver, changed paths, and consumer policy lists; a grouped PR may mix high-touch and low-risk packages.
+
 Apply loaded consumer policy facts with [policy-rubric.base.md](../../../.agents/policy-rubric.base.md) in this order:
 
 1. **Defer** triggers
