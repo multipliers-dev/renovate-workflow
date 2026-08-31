@@ -42,8 +42,8 @@ Re-run `/renovate-classifier` after the maintainer step to process the next FIFO
    - Tell the user to connect GitHub MCP **or** authenticate `gh`:
      - **MCP:** enable the official [GitHub MCP server](https://github.com/github/github-mcp-server/blob/main/docs/installation-guides/install-cursor.md) in **Cursor Settings → MCP** (global `~/.cursor/mcp.json`):
        - **Endpoint:** `https://api.githubcopilot.com/mcp/readonly` (read-only toolset; do not commit tokens to the repo)
-       - **Token:** classic personal access token with **`repo` scope only** (required for `get_check_runs` / Checks API)
-       - **Not supported:** fine-grained PATs cannot call the Checks API (`403 Resource not accessible by personal access token` on `get_check_runs` even with Metadata, Pull requests, Contents, and Actions Read)
+       - **Token (operator MCP credential — not `secrets.RENOVATE_TOKEN`):** classic personal access token with **`repo` scope only** (required for `get_check_runs` / Checks API)
+       - **Observed here:** fine-grained PATs used for operator MCP returned `403` for `get_check_runs` (`403 Resource not accessible by personal access token` even with Metadata, Pull requests, Contents, and Actions Read). Use classic `repo` for operator MCP/`gh` on this path. The Renovate bot Actions secret `RENOVATE_TOKEN` (`pat_branch`) is a separate credential and may be fine-grained.
      - **`gh` fallback:** install and authenticate the [GitHub CLI](https://cli.github.com/) (`gh auth login`) with repo access for the active remote.
    - After updating MCP tokens or `gh` auth, fully quit and restart Cursor if needed, then re-run **renovate-classifier**.
 5. **Forbidden write tools:** `merge_pull_request`, `pull_request_review_write`, `update_pull_request`, or any tool that merges, approves, comments, or closes PRs. No `gh pr merge`, `gh pr review`, or `gh pr close`.
