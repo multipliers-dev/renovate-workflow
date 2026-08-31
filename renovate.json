@@ -1,0 +1,44 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "branchPrefix": "renovate/",
+  "timezone": "Australia/Sydney",
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "dependencyDashboard": true,
+  "prHourlyLimit": 2,
+  "prConcurrentLimit": 5,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on Monday"]
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["npm"],
+      "groupName": "npm dependencies",
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "pinDigests": true
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["typescript", "vitest", "tsx", "yaml"],
+      "groupName": "high-touch tooling"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@types/"],
+      "groupName": "low-risk types",
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["husky"],
+      "groupName": "low-risk husky",
+      "matchUpdateTypes": ["minor", "patch"]
+    }
+  ]
+}
