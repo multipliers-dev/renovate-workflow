@@ -20,7 +20,7 @@ Include:
 - Steps to reproduce (if applicable)
 - Suggested fix (optional)
 
-We will acknowledge receipt and work on a fix before any public disclosure.
+Please report security-sensitive issues privately so they can be investigated before public discussion.
 
 ## Scope notes
 
