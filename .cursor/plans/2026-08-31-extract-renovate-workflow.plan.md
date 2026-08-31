@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: pr3-codenames
     content: "PR3 (codenames-ai-guesser): First consumer + portability acceptance test — delete implementation, keep config only"
-    status: pending
+    status: completed
   - id: plan-closure
     content: "Docs-only PR after last slice: add # Shipped note, move plan to .cursor/plans/archive/2026-08-31-extract-renovate-workflow.plan.md"
     status: pending
