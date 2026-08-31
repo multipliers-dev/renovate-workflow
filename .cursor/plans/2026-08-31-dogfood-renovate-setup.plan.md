@@ -80,7 +80,7 @@ From [README.md](../../README.md) / [docs/adopt.md](../../docs/adopt.md):
 - Normal consumer: plugin + consumer policy + git helper dependency
 - This repo: in-tree source + consumer policy + first-party helper script
 
-Deployment mode: **`pat_branch`** — self-hosted Actions + classic `RENOVATE_TOKEN` + `renovate/` prefix. That is the org’s live bot transport (Codenames), not a source of package-list or action-pin inheritance.
+Deployment mode: **`pat_branch`** — self-hosted Actions + `RENOVATE_TOKEN` + `renovate/` prefix. Use the same `RENOVATE_TOKEN` credential model as Codenames; a classic `repo` PAT is the current Codenames deployment, not a permanent dogfood contract. That is the org’s live bot transport, not a source of package-list or action-pin inheritance.
 
 ---
 
@@ -161,7 +161,7 @@ Policy `check_assembly` already requires this when `renovate.json` changes. Path
 
 ### Out of this slice (human)
 
-1. **GitHub secret** `RENOVATE_TOKEN` — classic `repo` PAT on `multipliers-dev/renovate-workflow`. Do not create the secret in this PR. Do not run the Renovate workflow until it exists.
+1. **GitHub secret** `RENOVATE_TOKEN` — use the same credential model as Codenames on `multipliers-dev/renovate-workflow`. Do not create the secret in this PR. Do not run the Renovate workflow until it exists. A classic `repo` PAT is what Codenames uses today; it is not part of this repo’s dogfood contract.
 2. After merge + secret: **Actions → Renovate → workflow_dispatch**, then classify (success is `queue_empty` or a packet). Classifier never merges.
 
 ### Post-merge acceptance — installed-plugin boundary
