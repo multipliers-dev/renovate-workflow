@@ -1,6 +1,6 @@
 # Adopting the Renovate ladder in a consumer repo
 
-Install the **Cursor plugin** for skills, agent docs, templates, and runbook. Keep **repo-specific facts** and **executable scripts** local via a small npm devDependency — no vendoring of the full renovate-workflow tree and no dependency on codenames-ai-guesser.
+Install the **Cursor plugin** from this repository for skills, agent docs, templates, and runbook. Add a small **npm/git devDependency** on the same repo for executable scripts. Keep **repo-specific facts** local — no vendoring the full tree and no dependency on codenames-ai-guesser.
 
 Phase A evidence: [distribution-discovery.md](distribution-discovery.md).
 
@@ -10,9 +10,11 @@ Phase A evidence: [distribution-discovery.md](distribution-discovery.md).
 
 | Layer | Source | Consumer action |
 | --- | --- | --- |
-| Skills, runbook, portable rubric, agent prompts, report templates | **cursor-team-marketplace** plugin `renovate-workflow` | Customize → Plugins → Add → From GitHub → `https://github.com/multipliers-dev/cursor-team-marketplace` (after marketplace PR merges) |
-| Executable TypeScript (`scripts/lib/*`, freshness poll CLI) | **renovate-workflow** npm/git package | `devDependencies` (see below) |
+| Skills, runbook, portable rubric, agent prompts, report templates | **This repo as a Cursor plugin** | Customize → Plugins → Add → From GitHub → `https://github.com/multipliers-dev/renovate-workflow` |
+| Executable TypeScript (`scripts/lib/*`, freshness poll CLI) | **Same repo via npm/git** | `devDependencies` (see below) |
 | Policy facts, Renovate bot config, CI workflow | **Your repo** | One-time copy + customize |
+
+This repository is both the **canonical implementation** and the **installable Cursor plugin** (`.cursor-plugin/plugin.json`). A separate marketplace catalog repo is optional organizational packaging only — not required for adoption.
 
 ---
 
@@ -20,11 +22,32 @@ Phase A evidence: [distribution-discovery.md](distribution-discovery.md).
 
 ### 1. Install the Cursor plugin
 
-When [cursor-team-marketplace](https://github.com/multipliers-dev/cursor-team-marketplace) lists `renovate-workflow`:
+**From GitHub (recommended):**
 
-Customize → **Plugins** → **+ Add** → **From GitHub Repository** → `https://github.com/multipliers-dev/cursor-team-marketplace`.
+Customize → **Plugins** → **+ Add** → **From GitHub Repository** → `https://github.com/multipliers-dev/renovate-workflow`
 
-Until that PR lands, install skills from a git checkout of this repo or wait for the marketplace registration PR.
+Or in Agent chat / CLI:
+
+```text
+/add-plugin multipliers-dev/renovate-workflow
+```
+
+**Local testing** (before publish): clone into Cursor's local plugin directory per [Cursor plugin docs](https://cursor.com/docs/plugins#test-plugins-locally):
+
+```bash
+git clone https://github.com/multipliers-dev/renovate-workflow.git ~/.cursor/plugins/local/renovate-workflow
+```
+
+Restart Cursor or run **Developer: Reload Window**. Confirm `/renovate-classifier` appears under Customize → Plugins.
+
+Plugin components resolve from this repo's tree:
+
+| Component | Path in repo |
+| --- | --- |
+| Manifest | `.cursor-plugin/plugin.json` |
+| Skills | `.cursor/skills/renovate-*` |
+| Agent prompts + templates | `.agents/` |
+| Runbook | `docs/renovate-workflow.md` |
 
 ### 2. Add npm runtime (scripts only)
 
@@ -44,17 +67,19 @@ In the consumer repo `package.json`:
 
 Then `npm install`.
 
-Skills reference scripts under `node_modules/renovate-workflow/scripts/` (plugin copy uses these paths). For babysit:
+For `/renovate-loop --babysit`, the classifier shells out to the freshness poll CLI:
 
 ```bash
 npm run renovate:freshness-poll -- --repo owner/repo --pr 123 --expected-head abc123
 ```
 
+See [examples/adopt-stub/package.json](../examples/adopt-stub/package.json).
+
 ### 3. Consumer policy (required)
 
 ```bash
 mkdir -p .agents
-cp path/to/plugin/agents/renovate-policy.template.yml .agents/renovate-policy.yml
+cp node_modules/renovate-workflow/.agents/renovate-policy.template.yml .agents/renovate-policy.yml
 # Edit package lists, checks.*, repo.* for this repository
 ```
 
@@ -78,10 +103,10 @@ Reports are written per run; never commit them.
 
 1. **Classify** — `/renovate-classifier` or `/renovate-classifier 412`
 2. **Route** by packet: maintainer auto path, investigation lane, or hard stop
-3. **Execute** — `/renovate-maintainer` or `/renovate-investigator` (prefer skills over `@.agents/` file refs)
+3. **Execute** — `/renovate-maintainer` or `/renovate-investigator` (prefer skill invoke over `@.agents/` file refs in consumer workspace)
 4. **Loop** — `/renovate-loop` for repeated classify → execute cycles
 
-Full walkthrough: plugin `docs/renovate-workflow.md` (same content as [renovate-workflow.md](renovate-workflow.md) here).
+Full walkthrough: [renovate-workflow.md](renovate-workflow.md) (also in the installed plugin's `docs/`).
 
 ---
 
@@ -94,29 +119,14 @@ Do **not** vendor into the consumer repo:
 - `docs/renovate-workflow.md`
 - `scripts/lib/*`, fixtures, or tests
 
-Those ship via plugin + git npm package. Codenames PR3 deletes its copies and adopts this layout.
-
----
-
-## Marketplace maintainer: sync plugin from canonical repo
-
-Regenerate the marketplace plugin tree from **this** repository (source of truth):
-
-```bash
-./scripts/sync-cursor-plugin.sh
-# Copy distribution/cursor-plugin/ → cursor-team-marketplace/plugins/renovate-workflow/
-# Register in .cursor-plugin/marketplace.json:
-#   { "name": "renovate-workflow", "source": "renovate-workflow", "description": "..." }
-```
-
-See [distribution-discovery.md](distribution-discovery.md) for path rewrite rules.
+Those ship via plugin install + npm git dependency on this same repository. Codenames PR3 deletes its duplicate copies and adopts this layout.
 
 ---
 
 ## Verification checklist
 
-- [ ] Plugin installed; `/renovate-classifier` appears in Agent chat
+- [ ] Plugin installed from `multipliers-dev/renovate-workflow`; `/renovate-classifier` appears in Agent chat
 - [ ] `.agents/renovate-policy.yml` exists and `version` is set
-- [ ] `npm run renovate:freshness-poll -- --help` prints usage
+- [ ] `npm run renovate:freshness-poll --` prints usage (after `npm install`)
 - [ ] `.agent-runs/renovate/` is gitignored
-- [ ] Classifier loads policy from workspace (not hardcoded owner/repo)
+- [ ] Classifier loads policy from consumer workspace (not hardcoded owner/repo)
