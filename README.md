@@ -132,8 +132,6 @@ examples/example-repo/ Synthetic consumer stubs for policy schema tests
 
 ---
 
-## History
+## License
 
-Originally extracted from [codenames-ai-guesser](https://github.com/multipliers-dev/codenames-ai-guesser) into a portable product. Extraction plan (archived): [.cursor/plans/archive/2026-08-31-extract-renovate-workflow.plan.md](.cursor/plans/archive/2026-08-31-extract-renovate-workflow.plan.md).
-
-Licensed under [MIT](LICENSE).
+[MIT](LICENSE)
