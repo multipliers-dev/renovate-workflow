@@ -2,14 +2,14 @@
 
 How consumer `renovate-policy.yml` relates to portable rubric logic and Renovate bot config.
 
-## Chosen sync model (PR1)
+## Sync model
 
-Avoid triple-sync. Consumer facts live in **one YAML file**; portable rubric **interprets** them.
+Consumer facts live in **one YAML file**; portable rubric **interprets** them.
 
 ```
 renovate.json              ← Renovate bot (groups, schedule, branch prefix)
        ↕
-       optional validation script (deferred to PR2+)
+       optional validation script (future)
        ↕
 renovate-policy.yml        ← consumer facts + check bindings (single source)
        ↓
@@ -43,18 +43,18 @@ Do not embed package lists or CI bindings in `.cursor/skills/renovate-classifier
 ## Bootstrap a consumer
 
 1. Copy [.agents/renovate-policy.template.yml](../.agents/renovate-policy.template.yml) → consumer `.agents/renovate-policy.yml`
-2. Fill package allowlists and checks for that repo
+2. Fill package lists and checks for that repo
 3. Omit `repo.owner` / `repo.name` to resolve from git remote
 4. Add `.agent-runs/renovate/` to consumer `.gitignore`
-5. Install portable skills/agents via PR2 distribution adapter (not vendored in PR1)
+5. Install skills/agents via the Cursor plugin (see [adopt.md](adopt.md)); do not vendor them
 
 ## Synthetic reference
 
-[examples/example-repo/renovate-policy.yml](../examples/example-repo/renovate-policy.yml) demonstrates schema only. **Codenames parity validation is PR3**, not this repository.
+[examples/example-repo/renovate-policy.yml](../examples/example-repo/renovate-policy.yml) demonstrates schema only — synthetic `example-org/example-service`, not a production snapshot.
 
 ## renovate.json relationship
 
-`renovate.json` controls bot mechanics (grouping, scheduling). Agent ladder reads **policy YAML** for classification and check bindings. Optional cross-validation between JSON groups and YAML allowlists is deferred to PR2+.
+`renovate.json` controls bot mechanics (grouping, scheduling). Agent ladder reads **policy YAML** for classification and check bindings. Optional cross-validation between JSON groups and YAML allowlists may be added later.
 
 ## Verification
 

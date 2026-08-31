@@ -11,7 +11,7 @@ Open Renovate dependency PRs are handled through a **manual four-step ladder**: 
 | `pat_branch` | Self-hosted Renovate via GitHub Actions + PAT; PRs use `renovate/` branch prefix; authored by PAT owner, not `app/renovate` |
 | `github_app` | Hosted Renovate / GitHub App; author is typically `app/renovate`; head branch may differ |
 
-Scheduled runs, webhooks, and other automation (**Phase 6**) are **deferred** until this manual path is routine.
+Scheduled runs, webhooks, and other automation are **out of scope** for this product — use the manual path below.
 
 ---
 
@@ -76,7 +76,7 @@ Use draft state to park a Renovate PR that should not enter the ladder yet (for 
 
 ### 1. Classify (one PR)
 
-Run `/renovate-classifier` for the next FIFO Renovate PR, or `/renovate-classifier 412` for a specific PR in the active (non-draft) Renovate set.
+Run `/renovate-classifier` for the next FIFO Renovate PR, or `/renovate-classifier {N}` for a specific PR in the active (non-draft) Renovate set.
 
 You get:
 
@@ -179,7 +179,7 @@ Supported invocations:
 
 Manual verification checklist: [`.cursor/skills/renovate-loop/verification.md`](../.cursor/skills/renovate-loop/verification.md). Loop summaries: `.agent-runs/renovate/loop-{YYYY-MM-DD}.md` (gitignored).
 
-This is **not** Phase 6 automation (scheduled runs, webhooks) — invoke only when you intend to process the Renovate queue in one session.
+This is **not** scheduled automation (cron, webhooks) — invoke only when you intend to process the Renovate queue in one session.
 
 ---
 
