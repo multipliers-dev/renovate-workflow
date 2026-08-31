@@ -1,0 +1,10 @@
+{
+  "name": "renovate-workflow",
+  "description": "Portable Renovate merge ladder: classify, investigate, maintainer, loop orchestration.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Michael Truong",
+    "email": "michael@multipliers.dev"
+  },
+  "keywords": ["renovate", "dependencies", "merge-ladder", "classifier", "maintainer"]
+}
