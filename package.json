@@ -23,7 +23,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit -p scripts/tsconfig.json",
     "prepare": "sh scripts/prepare-git-hooks.sh",
-    "verify:git-hooks": "sh scripts/verify-git-hooks.sh"
+    "verify:git-hooks": "sh scripts/verify-git-hooks.sh",
+    "renovate:freshness-poll": "tsx scripts/renovate-freshness-poll.ts"
   },
   "dependencies": {
     "yaml": "^2.8.1"

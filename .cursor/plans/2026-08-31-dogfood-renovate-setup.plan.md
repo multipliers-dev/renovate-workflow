@@ -4,7 +4,7 @@ overview: "Add this repository's own consumer Renovate files (policy, digest-pin
 todos:
   - id: dogfood-setup
     content: "Single implementation PR: consumer policy, renovate.json, digest-pinned workflows (including existing ci.yml), gitignore, first-party freshness-poll script"
-    status: pending
+    status: completed
   - id: plan-closure
     content: "Docs-only PR after implementation: add # Shipped note, move plan to .cursor/plans/archive/2026-08-31-dogfood-renovate-setup.plan.md"
     status: pending
