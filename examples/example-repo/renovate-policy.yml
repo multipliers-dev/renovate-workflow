@@ -1,0 +1,43 @@
+policy_version: 1
+
+repo:
+  owner: example-org
+  name: example-service
+  workspace_roots:
+    - package.json
+    - apps/web/package.json
+  sensitive_paths:
+    - .github/workflows/
+    - apps/web/src/
+
+packages:
+  high_touch:
+    - react
+    - next
+    - vite
+  low_risk_tooling:
+    - typescript
+    - eslint
+    - prettier
+    - vitest
+  runtime_rule: "dependencies under workspace_roots not matched above"
+
+checks:
+  required:
+    - name: ci
+      workflow: ci.yml
+      required: true
+    - name: typecheck
+      command: npm run typecheck
+      required: true
+    - name: test
+      command: npm test
+      required: true
+
+merge:
+  authority: maintainer_agent
+  batch_allowed_for:
+    - low_risk_tooling
+
+deployment:
+  mode: pat_branch

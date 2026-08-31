@@ -1,0 +1,48 @@
+# Renovate policy template
+
+# Copy to `.agents/renovate-policy.yml` in a consumer repository.
+# Facts live here; portable interpretation lives in `policy-rubric.base.md`.
+
+policy_version: 1
+
+repo:
+  # Optional — omit to resolve from `git remote get-url origin`.
+  owner: example-org
+  name: example-repo
+  workspace_roots:
+    - package.json
+  sensitive_paths:
+    - .github/workflows/
+    - src/
+
+packages:
+  high_touch:
+    - react
+    - vite
+  low_risk_tooling:
+    - typescript
+    - vitest
+    - husky
+  # Any dependency under workspace_roots not matched above is classified as runtime.
+  # Packages matching none of high_touch, low_risk_tooling, or runtime_rule scope
+  # are derived as unlisted_package (investigate lane).
+  runtime_rule: "dependencies under workspace_roots not matched above"
+
+checks:
+  required:
+    - name: ci
+      workflow: ci.yml
+      required: true
+    - name: typecheck
+      command: npm run typecheck
+      required: true
+
+merge:
+  authority: maintainer_agent
+  batch_allowed_for:
+    - low_risk_tooling
+
+deployment:
+  # pat_branch — PAT + branches under renovate/
+  # github_app — GitHub App installation tokens per workflow run
+  mode: github_app

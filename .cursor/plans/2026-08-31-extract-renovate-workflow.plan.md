@@ -4,13 +4,13 @@ overview: Extract the Renovate ladder into renovate-workflow as a self-contained
 todos:
   - id: pr1-extract
     content: "PR1 (renovate-workflow): Extract dependency closure, generalize codenames assumptions, wire tests"
-    status: pending
+    status: completed
   - id: pr1-policy-investigation
     content: "PR1: Consolidate consumer facts into renovate-policy.yml; derive unlisted from absence; synthetic example-repo only"
-    status: pending
+    status: completed
   - id: pr1-rubric-base
     content: "PR1: Split portable policy-rubric.base.md that interprets consumer renovate-policy.yml"
-    status: pending
+    status: completed
   - id: pr2-distribution
     content: "PR2: Discover what must be local; implement adapter (marketplace plugin + minimum local runtime only)"
     status: pending
