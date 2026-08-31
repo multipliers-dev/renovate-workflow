@@ -13,7 +13,7 @@ todos:
     status: completed
   - id: pr2-distribution
     content: "PR2: Discover what must be local; implement adapter (marketplace plugin + minimum local runtime only)"
-    status: pending
+    status: completed
   - id: pr3-codenames
     content: "PR3 (codenames-ai-guesser): First consumer + portability acceptance test — delete implementation, keep config only"
     status: pending

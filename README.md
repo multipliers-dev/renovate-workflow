@@ -16,6 +16,8 @@ npm run typecheck
 
 - [docs/renovate-workflow.md](docs/renovate-workflow.md) — runbook
 - [docs/policy-setup.md](docs/policy-setup.md) — consumer policy sync model
+- [docs/adopt.md](docs/adopt.md) — consumer adoption (plugin + npm scripts)
+- [docs/distribution-discovery.md](docs/distribution-discovery.md) — PR2 local boundary evidence
 - [AGENTS.md](AGENTS.md) — agent command reference
 
 ## Layout
@@ -32,4 +34,4 @@ examples/example-repo/ Synthetic renovate-policy.yml for contract tests
 
 Staged extraction plan: [.cursor/plans/2026-08-31-extract-renovate-workflow.plan.md](.cursor/plans/2026-08-31-extract-renovate-workflow.plan.md)
 
-PR1 delivers portable core. Distribution (PR2) and Codenames consumer migration (PR3) follow after merge.
+PR1 delivers portable core. **PR2** adds distribution adapter docs, plugin sync output under `distribution/cursor-plugin/`, and [docs/adopt.md](docs/adopt.md). Codenames consumer migration (PR3) follows after marketplace plugin registration.
