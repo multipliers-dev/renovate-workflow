@@ -98,6 +98,8 @@ Add `renovate.json` and `.github/workflows/renovate.yml` for your deployment mod
 
 For `pat_branch`, set the Actions secret `RENOVATE_TOKEN`. A fine-grained PAT with Contents, Pull requests, Issues, Actions, and Workflows write (org repos as needed) is sufficient — this is how multipliers-dev runs it.
 
+**Renovate grouping is optional topology, not policy.** Put package risk classes in `.agents/renovate-policy.yml` only. In `renovate.json`, group updates that must move together (for example GitHub Actions with `pinDigests: true`). Individual npm PRs are the default; do not copy policy bucket names into `groupName` or batch unrelated minors in a catch-all.
+
 See stubs in [examples/example-repo/](../examples/example-repo/).
 
 ### 4. Gitignore audit trail
