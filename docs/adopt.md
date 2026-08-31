@@ -84,10 +84,11 @@ Plugin components resolve from this repo's tree:
 
 ```bash
 mkdir -p .agents
-cp node_modules/renovate-workflow/.agents/renovate-policy.template.yml .agents/renovate-policy.yml
-# Or copy from the installed plugin's .agents/ path after plugin install
+curl -fsSL https://raw.githubusercontent.com/multipliers-dev/renovate-workflow/main/.agents/renovate-policy.template.yml -o .agents/renovate-policy.yml
 # Edit package lists, checks.*, repo.* for this repository
 ```
+
+Or copy [`.agents/renovate-policy.template.yml`](../.agents/renovate-policy.template.yml) from the installed **renovate-workflow** plugin (step 1) into `.agents/renovate-policy.yml`.
 
 See [policy-setup.md](policy-setup.md). Example facts: [examples/example-repo/renovate-policy.yml](../examples/example-repo/renovate-policy.yml).
 
@@ -126,6 +127,12 @@ In the consumer repo `package.json`:
 ```
 
 Then `npm install`.
+
+If you have not already created `.agents/renovate-policy.yml`, you can alternatively copy the template from the git dependency:
+
+```bash
+cp node_modules/renovate-workflow/.agents/renovate-policy.template.yml .agents/renovate-policy.yml
+```
 
 For `/renovate-loop --babysit`, the classifier shells out to the freshness poll CLI:
 
