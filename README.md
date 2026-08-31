@@ -2,13 +2,12 @@
 
 Portable Renovate merge ladder extracted from [codenames-ai-guesser](https://github.com/multipliers-dev/codenames-ai-guesser): classify → investigate (when eligible) → maintainer → loop orchestration.
 
-This repository is the **authoritative implementation** and an **installable Cursor plugin** (`.cursor-plugin/plugin.json`). Consumer repositories install the plugin from this GitHub repo and retain only `renovate.json`, Renovate workflow YAML, and `.agents/renovate-policy.yml`.
+This repository is the **authoritative implementation**, a **single-plugin marketplace** (`.cursor-plugin/marketplace.json`), and an **installable Cursor plugin** (`.cursor-plugin/plugin.json`). Consumer repositories import the marketplace from GitHub, install the `renovate-workflow` plugin, and retain only `renovate.json`, Renovate workflow YAML, and `.agents/renovate-policy.yml`.
 
 ## Install as Cursor plugin
 
-Customize → **Plugins** → **+ Add** → **From GitHub Repository** → `https://github.com/multipliers-dev/renovate-workflow`
-
-Or: `/add-plugin multipliers-dev/renovate-workflow`
+1. Import marketplace: Customize → **Plugins** → **+ Add** → **From GitHub Repository** → `https://github.com/multipliers-dev/renovate-workflow` (or `/add-plugin https://github.com/multipliers-dev/renovate-workflow`)
+2. Install the **renovate-workflow** plugin from that imported marketplace
 
 Full consumer setup: [docs/adopt.md](docs/adopt.md)
 
@@ -31,7 +30,7 @@ npm run typecheck
 ## Layout
 
 ```
-.cursor-plugin/        Cursor plugin manifest (skills + agents paths)
+.cursor-plugin/        Marketplace + plugin manifests (skills + agents paths)
 .cursor/skills/        Five renovate skills + verification assets
 .agents/               Agent prompts, rubric base, policy template, report templates
 docs/                  Runbook + adoption guides

@@ -1,0 +1,17 @@
+{
+  "name": "renovate-workflow",
+  "owner": {
+    "name": "Michael Truong",
+    "email": "michael@multipliers.dev"
+  },
+  "metadata": {
+    "description": "Portable Renovate merge ladder: classify, investigate, maintainer, and loop orchestration."
+  },
+  "plugins": [
+    {
+      "name": "renovate-workflow",
+      "source": ".",
+      "description": "Portable Renovate merge ladder: classify, investigate, maintainer, loop orchestration."
+    }
+  ]
+}

@@ -10,27 +10,45 @@ Phase A evidence: [distribution-discovery.md](distribution-discovery.md).
 
 | Layer | Source | Consumer action |
 | --- | --- | --- |
-| Skills, runbook, portable rubric, agent prompts, report templates | **This repo as a Cursor plugin** | Customize → Plugins → Add → From GitHub → `https://github.com/multipliers-dev/renovate-workflow` |
+| Skills, runbook, portable rubric, agent prompts, report templates | **This repo as a Cursor plugin** | Import marketplace (step 1), then install the `renovate-workflow` plugin (step 2) |
 | Executable TypeScript (`scripts/lib/*`, freshness poll CLI) | **Same repo via npm/git** | `devDependencies` (see below) |
 | Policy facts, Renovate bot config, CI workflow | **Your repo** | One-time copy + customize |
 
-This repository is both the **canonical implementation** and the **installable Cursor plugin** (`.cursor-plugin/plugin.json`). A separate marketplace catalog repo is optional organizational packaging only — not required for adoption.
+This repository is the **canonical implementation**, a **single-plugin marketplace** (`.cursor-plugin/marketplace.json`), and the **installable Cursor plugin** (`.cursor-plugin/plugin.json`). Skills and agents stay at `.cursor/skills` and `.agents` in this repo — there is no nested `plugins/` mirror tree.
 
 ---
 
 ## One-time setup
 
-### 1. Install the Cursor plugin
+### 1. Import the marketplace, then install the plugin
 
-**From GitHub (recommended):**
+Cursor's GitHub import flow treats a repository URL as a **marketplace** catalog, not a direct standalone plugin install. This repo ships both manifests so `/add-plugin` and **From GitHub** have a marketplace to import and a plugin entry to install from.
+
+**Step 1 — import this repo as a local marketplace**
 
 Customize → **Plugins** → **+ Add** → **From GitHub Repository** → `https://github.com/multipliers-dev/renovate-workflow`
 
 Or in Agent chat / CLI:
 
 ```text
-/add-plugin multipliers-dev/renovate-workflow
+/add-plugin https://github.com/multipliers-dev/renovate-workflow
 ```
+
+**Step 2 — install the plugin from the imported marketplace**
+
+After import, open **Customize → Plugins**, select the imported **renovate-workflow** marketplace, and install the **renovate-workflow** plugin listed there.
+
+Confirm `/renovate-classifier` appears under Customize → Plugins.
+
+**What this is (and is not)**
+
+| Kind | This repo? |
+| --- | --- |
+| **Local / non-team marketplace** (GitHub import → install listed plugins) | **Yes** — `.cursor-plugin/marketplace.json` |
+| Cursor **public** marketplace (`cursor.com/marketplace`) | No — optional submission later |
+| **Team marketplace** (Teams/Enterprise org catalog, e.g. cursor-team-marketplace) | No — different product surface |
+
+**Marketplace resolution:** the plugin entry uses `"source": "."`, so Cursor resolves `.cursor-plugin/plugin.json` at the **repository root** and discovers components from paths declared there (`"skills": ".cursor/skills"`, `"agents": ".agents"`). No duplicate nested plugin directory is required.
 
 **Local testing** (before publish): clone into Cursor's local plugin directory per [Cursor plugin docs](https://cursor.com/docs/plugins#test-plugins-locally):
 
@@ -38,13 +56,14 @@ Or in Agent chat / CLI:
 git clone https://github.com/multipliers-dev/renovate-workflow.git ~/.cursor/plugins/local/renovate-workflow
 ```
 
-Restart Cursor or run **Developer: Reload Window**. Confirm `/renovate-classifier` appears under Customize → Plugins.
+Restart Cursor or run **Developer: Reload Window**.
 
 Plugin components resolve from this repo's tree:
 
 | Component | Path in repo |
 | --- | --- |
-| Manifest | `.cursor-plugin/plugin.json` |
+| Marketplace manifest | `.cursor-plugin/marketplace.json` |
+| Plugin manifest | `.cursor-plugin/plugin.json` |
 | Skills | `.cursor/skills/renovate-*` |
 | Agent prompts + templates | `.agents/` |
 | Runbook | `docs/renovate-workflow.md` |
@@ -125,7 +144,8 @@ Those ship via plugin install + npm git dependency on this same repository. Code
 
 ## Verification checklist
 
-- [ ] Plugin installed from `multipliers-dev/renovate-workflow`; `/renovate-classifier` appears in Agent chat
+- [ ] Marketplace imported from `https://github.com/multipliers-dev/renovate-workflow`
+- [ ] **renovate-workflow** plugin installed from that marketplace; `/renovate-classifier` appears in Agent chat
 - [ ] `.agents/renovate-policy.yml` exists and `version` is set
 - [ ] `npm run renovate:freshness-poll --` prints usage (after `npm install`)
 - [ ] `.agent-runs/renovate/` is gitignored
