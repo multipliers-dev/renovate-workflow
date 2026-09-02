@@ -10,6 +10,7 @@ Portable Renovate merge ladder — authoritative implementation for consumer rep
 | `npm start` | Run TypeScript once (`tsx src/index.ts`) |
 | `npm test` | Vitest — guardrails, stop-causes, investigation eligibility, freshness poll |
 | `npm run typecheck` | TypeScript `tsc --noEmit` (root + scripts) |
+| `npm run verify:git-hooks` | Confirm Husky shims are runnable in this checkout |
 | `npx tsx scripts/renovate-freshness-poll.ts --help` | Freshness poll CLI (babysit helper) |
 
 ## Renovate workflow
@@ -36,6 +37,21 @@ Portable Renovate merge ladder — authoritative implementation for consumer rep
 | --- | --- |
 | Maintainer | `.agents/renovate-maintainer.md` |
 | Investigator | `.agents/renovate-investigator.md` |
+
+## Git hooks
+
+Do not blur hook infrastructure with commit checks or CI.
+
+| Layer | Question | Mechanism |
+| --- | --- | --- |
+| **1 — Hook availability** | Are Git hooks wired and runnable in *this* checkout? | `prepare-git-hooks.sh`, `verify-git-hooks.sh`, `ensure-hooks.sh`, `husky-shim-repair.sh`; `sessionStart` verify/repair/warn |
+| **2a — Agent feedback** | Not used | No Prettier / `afterFileEdit` |
+| **2b — Commit correctness** | What must pass before a commit lands locally? | `.husky/pre-commit`: `npm test` then `npm run typecheck` |
+| **3 — Authoritative enforcement** | Backstop when local/agent machinery fails? | CI (`npm test`, `npm run typecheck`) |
+
+An agent must not assume Git hooks are active merely because `core.hooksPath` is configured. After `git worktree add`, run `npm run prepare` (or `npm run verify:git-hooks` after prepare) in the new worktree before committing.
+
+Cloud Agents: committed `.cursor/environment.json` runs `npm ci` (triggers `prepare`) then `sh scripts/ensure-hooks.sh`. Marketplace / plugin install does not wire this by itself. After merging lifecycle changes, trigger and promote a new environment Build.
 
 ## Discipline
 

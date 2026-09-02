@@ -3,7 +3,8 @@
   "hooks": {
     "sessionStart": [
       {
-        "command": "sh .cursor/hooks/ensure-git-hooks.sh"
+        "command": "sh .cursor/hooks/ensure-git-hooks.sh",
+        "timeout": 15
       }
     ]
   }
