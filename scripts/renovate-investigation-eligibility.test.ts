@@ -12,10 +12,20 @@ const REPO_ROOT = resolve(process.cwd());
 const POLICY_PATH = join(REPO_ROOT, "examples/example-repo/renovate-policy.yml");
 const FIXTURES_DIR = join(REPO_ROOT, "scripts/fixtures/renovate-packets");
 
+const HIGH_TOUCH_OVERRIDABLE_CAUSES = [
+  "decision_human_required",
+  "stop_flag_expected_human_required",
+  "triggered_runtime_behavior_affected_sole",
+  "triggered_runtime_behavior_affected",
+  "triggered_lockfile_threshold_exceeded",
+] as const;
+
 const UNLISTED_OVERRIDABLE_CAUSES = [
   "decision_human_required",
   "stop_flag_expected_human_required",
   "triggered_runtime_behavior_affected_sole",
+  "triggered_runtime_behavior_affected",
+  "triggered_lockfile_threshold_exceeded",
 ] as const;
 
 function loadFixturePacket(name: string): RenovatePacket {
@@ -32,11 +42,7 @@ describe("evaluateInvestigationEligibility", () => {
     expect(result).toEqual({
       eligible: true,
       riskClass: "high_touch_tooling",
-      overridableCauses: [
-        "decision_human_required",
-        "stop_flag_expected_human_required",
-        "triggered_runtime_behavior_affected_sole",
-      ],
+      overridableCauses: [...HIGH_TOUCH_OVERRIDABLE_CAUSES],
     });
   });
 
@@ -69,34 +75,56 @@ describe("evaluateInvestigationEligibility", () => {
     });
   });
 
-  it("rejects unlisted packet with lockfile_threshold_exceeded in stop_causes", () => {
-    const packet = loadFixturePacket("unlisted-package-investigate.yaml");
-    const blocked: RenovatePacket = {
+  it("high-touch packet with lockfile_threshold_exceeded alone is investigation-eligible", () => {
+    const packet = loadFixturePacket("high-touch-patch-investigate.yaml");
+    const eligible: RenovatePacket = {
       ...packet,
       triggered_human_required: ["lockfile_threshold_exceeded"],
     };
-    blocked.stop_causes = deriveStopCauses(blocked);
+    eligible.stop_causes = deriveStopCauses(eligible);
 
-    const result = evaluateInvestigationEligibility(blocked, policy);
-    expect(result.eligible).toBe(false);
-    if (!result.eligible) {
-      expect(result.reason).toContain("triggered_lockfile_threshold_exceeded");
-    }
+    const result = evaluateInvestigationEligibility(eligible, policy);
+    expect(result).toEqual({
+      eligible: true,
+      riskClass: "high_touch_tooling",
+      overridableCauses: [...HIGH_TOUCH_OVERRIDABLE_CAUSES],
+    });
   });
 
-  it("rejects high-touch packet with lockfile_threshold_exceeded in stop_causes", () => {
+  it("high-touch packet with lockfile_threshold_exceeded and runtime_behavior_affected is investigation-eligible", () => {
     const packet = loadFixturePacket("high-touch-patch-investigate.yaml");
-    const blocked: RenovatePacket = {
+    const eligible: RenovatePacket = {
       ...packet,
       triggered_human_required: ["runtime_behavior_affected", "lockfile_threshold_exceeded"],
     };
-    blocked.stop_causes = deriveStopCauses(blocked);
+    eligible.stop_causes = deriveStopCauses(eligible);
 
-    const result = evaluateInvestigationEligibility(blocked, policy);
-    expect(result.eligible).toBe(false);
-    if (!result.eligible) {
-      expect(result.reason).toContain("triggered_lockfile_threshold_exceeded");
-    }
+    expect(eligible.stop_causes).toContain("triggered_runtime_behavior_affected");
+    expect(eligible.stop_causes).toContain("triggered_lockfile_threshold_exceeded");
+    expect(eligible.stop_causes).not.toContain("triggered_runtime_behavior_affected_sole");
+
+    const result = evaluateInvestigationEligibility(eligible, policy);
+    expect(result).toEqual({
+      eligible: true,
+      riskClass: "high_touch_tooling",
+      overridableCauses: [...HIGH_TOUCH_OVERRIDABLE_CAUSES],
+    });
+  });
+
+  it("unlisted packet with lockfile_threshold_exceeded is investigation-eligible", () => {
+    const packet = loadFixturePacket("unlisted-package-investigate.yaml");
+    const eligible: RenovatePacket = {
+      ...packet,
+      triggered_human_required: ["lockfile_threshold_exceeded"],
+    };
+    eligible.stop_causes = deriveStopCauses(eligible);
+
+    const result = evaluateInvestigationEligibility(eligible, policy);
+    expect(result).toEqual({
+      eligible: true,
+      riskClass: "unlisted_package",
+      overridableCauses: [...UNLISTED_OVERRIDABLE_CAUSES],
+    });
   });
 
   it("rejects packet with missing stop_causes when stop is true", () => {
