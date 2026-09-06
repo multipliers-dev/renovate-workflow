@@ -58,10 +58,14 @@ execution_modes:
         - decision_human_required
         - stop_flag_expected_human_required
         - triggered_runtime_behavior_affected_sole
+        - triggered_runtime_behavior_affected
+        - triggered_lockfile_threshold_exceeded
       unlisted_package:
         - decision_human_required
         - stop_flag_expected_human_required
         - triggered_runtime_behavior_affected_sole
+        - triggered_runtime_behavior_affected
+        - triggered_lockfile_threshold_exceeded
     requires_investigation_verdict: ready_for_human_merge
     requires_human_approval_modifier: --approved
     allowed_paths:
