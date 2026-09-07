@@ -110,7 +110,7 @@ If live evidence contradicts the packet in ways that would change classification
 
 - **`triggered_human_required`** — conditions that **already fired** at classification time (e.g. `runtime_behavior_affected`, `lockfile_threshold_exceeded`, `implementation_changes_required`, `ci_failure_unexplained`).
   - **Auto path:** non-empty list → **immediate stop**; do not attempt merge or further inspection for merge eligibility.
-  - **Investigation-approved path:** do **not** evaluate the raw list independently. Authoritative input is `stop_causes` via `evaluateTriggeredStops(packet, { executionMode: "investigation_approved", overridableStopReasons })`. Stop only when non-overridable structured causes remain after policy allowlist suppression (e.g. `decision_human_required`, `stop_flag_expected_human_required`, and `triggered_runtime_behavior_affected_sole` may be suppressed; `triggered_lockfile_threshold_exceeded` may not).
+  - **Investigation-approved path:** do **not** evaluate the raw list independently. Authoritative input is `stop_causes` via `evaluateTriggeredStops(packet, { executionMode: "investigation_approved", overridableStopReasons })`. Stop only when non-overridable structured causes remain after policy allowlist suppression (e.g. `decision_human_required`, `stop_flag_expected_human_required`, `triggered_runtime_behavior_affected_sole`, `triggered_runtime_behavior_affected`, and `triggered_lockfile_threshold_exceeded` may be suppressed when listed in policy for the packet's `risk_class`).
 - **`human_required_if`** — latent watch conditions **not yet confirmed**. Continue through inspection and pre-merge checks on **both** paths, but if inspection **confirms** any watch condition → stop and append findings to the run report.
 
 Watch-list keys (not `risk_class` values): `implementation_changes_required`, `lockfile_threshold_exceeded`, `ci_failure_unexplained`, `runtime_behavior_affected`.
@@ -136,9 +136,9 @@ Run **every** check listed in packet `required_checks` whose policy `checks.<nam
 | `pr_ci_green`               | always                           | PR check runs green via `get_check_runs`; maps to consumer `checks.pr_ci_green` workflow/job                                                                              | `gh pr checks <N>` — all required checks passing                                                                                                                                                                                                                                                                                       |
 | `validate_renovate_config`  | when `renovate.json` changed     | Config validation workflow green via `get_check_runs`                                                                                                                                  | `gh pr checks <N>` — Renovate config validation check green                                                                                                                                                                                                                                                                            |
 | `workflow_uses_pin_only`    | when workflows changed           | **Hard gate:** re-verify every diff hunk in `.github/workflows/*.yml` is a `uses:` pin **within the same Action major** via `get_diff`. Non-`uses:` edits or Action major bumps → stop | **Hard gate:** same rule via `gh pr diff <N>` — inspect every `.github/workflows/*.yml` hunk                                                                                                                                                                                                                                           |
-| `lockfile_within_threshold` | when `package-lock.json` changed | **Hard gate:** re-fetch `get_files`; recompute `pr_file_count`; confirm `line_delta_total` ≤ `line_delta_limit` and single-package `pr_file_count` ≤ 30                                | **Hard gate:** `gh pr view <N> --json files` — `pr_file_count` = file count; `line_delta_total` = `package-lock.json` entry `additions + deletions` (same metric as MCP `get_files` per [policy-rubric.base — Lockfile impact](policy-rubric.base.md#lockfile-impact)); confirm ≤ `line_delta_limit` and single-package `pr_file_count` ≤ 30 |
+| `lockfile_within_threshold` | when `package-lock.json` changed | **Hard gate** on auto path. On investigation-approved path: **waive** when `triggered_lockfile_threshold_exceeded` was suppressed (record live `line_delta_total` / limit in run report; do not stop). Otherwise **hard gate:** re-fetch `get_files`; recompute `pr_file_count`; confirm `line_delta_total` ≤ `line_delta_limit` and single-package `pr_file_count` ≤ 30 | **Hard gate** on auto path. On investigation-approved path: same waiver when lockfile stop was suppressed. Otherwise **hard gate:** `gh pr view <N> --json files` — `pr_file_count` = file count; `line_delta_total` = `package-lock.json` entry `additions + deletions` (same metric as MCP `get_files` per [policy-rubric.base — Lockfile impact](policy-rubric.base.md#lockfile-impact)); confirm ≤ `line_delta_limit` and single-package `pr_file_count` ≤ 30 |
 
-Any pre-merge check failure → stop.
+Any pre-merge check failure → stop (except `lockfile_within_threshold` waiver on investigation-approved path when `triggered_lockfile_threshold_exceeded` was suppressed per policy).
 
 ### 6. Merge authority gate
 
@@ -158,7 +158,7 @@ Alternatively, use `evaluateMergeAuthority(packet, policy)` — any `stop: true`
 
 **Investigation-approved path** (`effectiveExecutionAuthority === "investigation_approved_merge"`):
 
-- Proceed to merge re-validation when pre-merge checks pass.
+- Proceed to merge re-validation when pre-merge checks pass (Step 5 lockfile waiver applies when `triggered_lockfile_threshold_exceeded` was suppressed).
 - Packet `classification.merge_authority` stays `denied` on the packet (immutable classifier output); execute-time derivation grants merge eligibility only.
 - If derivation did not yield `investigation_approved_merge` → stop (should not reach this step).
 
@@ -210,7 +210,6 @@ Write run report from [templates/renovate-run-report.md](templates/renovate-run-
 - PR `head_sha` differs from packet at **preflight** or **immediately before merge** (stale packet)
 - Live `mergeStateStatus == BEHIND` at **preflight** (base branch moved after classification)
 - Any `human_required_if` watch condition confirmed true during inspection
-- Any pre-merge check listed in packet `required_checks` fails
 - Ambiguity → default stop (same as rubric's "default to review manually")
 
 **Auto path only** (`effectiveExecutionAuthority === "unchanged"`):
@@ -218,11 +217,13 @@ Write run report from [templates/renovate-run-report.md](templates/renovate-run-
 - Any item in `triggered_human_required` (non-empty list)
 - Packet `stop: true`
 - Policy YAML denies the `risk_class` or `merge_authority`
+- Any pre-merge check listed in packet `required_checks` fails (including `lockfile_within_threshold` hard gate)
 
 **Investigation-approved path only** (`effectiveExecutionAuthority === "investigation_approved_merge"`):
 
 - `evaluateTriggeredStops` returns `stop: true` (non-overridable `stop_causes` remain)
 - Do **not** stop based on raw `triggered_human_required` or packet `stop: true` alone — structured `stop_causes` are the authoritative policy input
+- Any pre-merge check listed in packet `required_checks` fails, **except** `lockfile_within_threshold` may be waived per Step 5 when `triggered_lockfile_threshold_exceeded` was suppressed (record live delta/limit in run report; do not stop)
 
 ---
 
@@ -249,7 +250,7 @@ Execute for PR #{N}. Input packet (YAML):
 ---END PACKET---
 
 Merge only if merge_authority conditions are satisfied.
-Stop if policy_version differs from renovate-policy.yml at preflight or immediately before merge, if head_sha differs from live PR at preflight or immediately before merge, if mergeStateStatus is BEHIND at preflight, if triggered_human_required is non-empty, or if any human_required_if watch condition becomes true during inspection.
+Stop if policy_version differs from renovate-policy.yml at preflight or immediately before merge, if head_sha differs from live PR at preflight or immediately before merge, if mergeStateStatus is BEHIND at preflight, if triggered_human_required is non-empty, if any pre-merge check in required_checks fails (including lockfile_within_threshold hard gate), or if any human_required_if watch condition becomes true during inspection.
 Write run report to .agent-runs/renovate/{date}-pr-{N}.md using .agents/templates/renovate-run-report.md
 ```
 
@@ -273,7 +274,7 @@ Execution overlay (YAML):
 ---END OVERLAY---
 
 Derive effective_execution_authority via evaluateEffectiveExecutionAuthority.
-Merge only when effective_execution_authority is investigation_approved_merge and all pre-merge checks pass.
+Merge only when effective_execution_authority is investigation_approved_merge and all pre-merge checks pass (lockfile_within_threshold waived when triggered_lockfile_threshold_exceeded was suppressed per Step 5 — record delta, do not stop).
 Do not stop based on raw triggered_human_required or stop: true alone — use evaluateTriggeredStops with stop_causes only.
 Hard-stop if --approved is present without overlay, or overlay without --approved.
 Write run report to .agent-runs/renovate/{date}-pr-{N}.md using .agents/templates/renovate-run-report.md

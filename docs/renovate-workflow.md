@@ -100,7 +100,7 @@ You get:
 | `stop: true`, not investigation-eligible | **Hard stop** — review on GitHub; no maintainer or investigator handoff   |
 | `defer`                                  | Leave open; no handoff                                                    |
 
-Investigation eligibility is determined by [`evaluateInvestigationEligibility`](../scripts/lib/renovate-investigation-eligibility.ts) and policy `execution_modes.investigation_approved` in [`.agents/renovate-policy.yml`](../.agents/renovate-policy.yml). Typical eligible cases: high-touch tooling or unlisted package with only overridable classifier stops (e.g. sole `runtime_behavior_affected`, or the human-required pair alone). Dependency-only `allowed_paths` gate investigation-approved merge, not investigation routing.
+Investigation eligibility is determined by [`evaluateInvestigationEligibility`](../scripts/lib/renovate-investigation-eligibility.ts) and policy `execution_modes.investigation_approved` in [`.agents/renovate-policy.yml`](../.agents/renovate-policy.yml). Typical eligible cases: high-touch tooling or unlisted package with only overridable classifier stops (e.g. sole or combined `runtime_behavior_affected`, `lockfile_threshold_exceeded`, or the human-required pair alone). The 800-line lockfile threshold remains a hard auto-merge signal; investigation-approved execution with human `--approved` may suppress `triggered_lockfile_threshold_exceeded` when policy lists it as overridable. Dependency-only `allowed_paths` gate investigation-approved merge, not investigation routing.
 
 ### 3a. Execute — maintainer auto path
 
