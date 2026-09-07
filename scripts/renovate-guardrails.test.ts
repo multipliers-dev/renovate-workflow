@@ -187,7 +187,7 @@ describe("stop_causes guardrails", () => {
     expect(result).toEqual({ stop: false });
   });
 
-  it("high-touch plus lockfile_threshold_exceeded still stops", () => {
+  it("high-touch plus lockfile_threshold_exceeded is overridable under investigation_approved", () => {
     const packet = loadFixturePacket("high-touch-patch-investigate.yaml");
     const blocked: RenovatePacket = {
       ...packet,
@@ -202,10 +202,7 @@ describe("stop_causes guardrails", () => {
       executionMode: "investigation_approved",
       overridableStopReasons: overridable,
     });
-    expect(result.stop).toBe(true);
-    if (result.stop) {
-      expect(result.reason).toContain("triggered_lockfile_threshold_exceeded");
-    }
+    expect(result).toEqual({ stop: false });
   });
 
   it("decision_defer is never overridden", () => {
@@ -320,7 +317,7 @@ describe("evaluateEffectiveExecutionAuthority", () => {
     });
   });
 
-  it("unlisted packet with non-overridable stop stays denied even with --approved", () => {
+  it("unlisted packet with lockfile_threshold_exceeded derives investigation_approved_merge with --approved", () => {
     const base = loadFixturePacket("unlisted-package-investigate.yaml");
     const packet: RenovatePacket = {
       ...base,
@@ -340,9 +337,73 @@ describe("evaluateEffectiveExecutionAuthority", () => {
         },
       },
     });
+    expect(result).toEqual({
+      effectiveExecutionAuthority: "investigation_approved_merge",
+      originalMergeAuthority: "denied",
+      suppressedStopCauses: [
+        "decision_human_required",
+        "stop_flag_expected_human_required",
+        "triggered_lockfile_threshold_exceeded",
+      ],
+    });
+  });
+
+  it("high-touch lockfile plus runtime derives investigation_approved_merge with --approved", () => {
+    const base = loadFixturePacket("high-touch-patch-investigate.yaml");
+    const packet: RenovatePacket = {
+      ...base,
+      triggered_human_required: ["runtime_behavior_affected", "lockfile_threshold_exceeded"],
+    };
+    packet.stop_causes = deriveStopCauses(packet);
+
+    const result = evaluateEffectiveExecutionAuthority(packet, policy, {
+      humanApprovalModifier: "--approved",
+      overlay: {
+        execution_mode: "investigation_approved",
+        investigation: {
+          verdict: "ready_for_human_merge",
+          report_path: ".agent-runs/renovate/2026-07-15-pr-402-investigation.md",
+          investigated_at: "2026-07-15T00:00:00.000Z",
+          investigation_head_sha: packet.pr!.head_sha!,
+        },
+      },
+    });
+    expect(result).toEqual({
+      effectiveExecutionAuthority: "investigation_approved_merge",
+      originalMergeAuthority: "denied",
+      suppressedStopCauses: [
+        "decision_human_required",
+        "stop_flag_expected_human_required",
+        "triggered_lockfile_threshold_exceeded",
+        "triggered_runtime_behavior_affected",
+      ],
+    });
+  });
+
+  it("unlisted packet with non-overridable stop stays denied even with --approved", () => {
+    const base = loadFixturePacket("unlisted-package-investigate.yaml");
+    const packet: RenovatePacket = {
+      ...base,
+      triggered_human_required: ["implementation_changes_required"],
+      stop_reason: "implementation_changes_required",
+    };
+    packet.stop_causes = deriveStopCauses(packet);
+
+    const result = evaluateEffectiveExecutionAuthority(packet, policy, {
+      humanApprovalModifier: "--approved",
+      overlay: {
+        execution_mode: "investigation_approved",
+        investigation: {
+          verdict: "ready_for_human_merge",
+          report_path: ".agent-runs/renovate/2026-07-20-pr-425-investigation.md",
+          investigated_at: "2026-07-20T00:00:00.000Z",
+          investigation_head_sha: packet.pr!.head_sha!,
+        },
+      },
+    });
     expect(result.effectiveExecutionAuthority).toBe("denied");
     if (result.effectiveExecutionAuthority === "denied") {
-      expect(result.reason).toContain("triggered_lockfile_threshold_exceeded");
+      expect(result.reason).toContain("triggered_implementation_changes_required");
     }
   });
 

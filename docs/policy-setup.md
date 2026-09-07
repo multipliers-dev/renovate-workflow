@@ -28,6 +28,7 @@ Store **facts needed to derive classifications**, not duplicated derived labels:
 | `packages.high_touch` | Explicit allowlist |
 | `packages.low_risk_tooling` | Explicit allowlist (supports `*` globs) |
 | `checks.pr_ci_green` / `checks.lockfile_within_threshold` | CI and lockfile gate bindings |
+| `execution_modes.investigation_approved.overridable_classifier_stops` | Classifier stops suppressible on investigation-approved path (e.g. lockfile threshold remains a hard auto-merge signal at 800 lines, but may be overridden after investigation + human `--approved`) |
 | `check_assembly` + `checks.*` | Required-check assembly for packets |
 | `deployment.mode` | PAT branch vs GitHub App |
 
