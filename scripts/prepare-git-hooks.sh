@@ -62,7 +62,11 @@ fi
 # Final reconciliation: restore Cursor Cloud agent-hooks core.hooksPath after Husky.
 # Always runs after verify — even when verify fails — so a bad shim state cannot skip
 # agent-hooks reconciliation. Must run last so a late Husky repair cannot clobber the path.
-# On Cloud, agent-hooks may appear later — see session-ensure-git-hooks.sh (sessionStart).
-sh "$SCRIPT_DIR/ensure-hooks.sh"
+# best-effort here: agent-hooks may not exist until environment start (blocking wait in environment.json).
+ensure_status=0
+sh "$SCRIPT_DIR/ensure-hooks.sh" || ensure_status=$?
+if [ "$ensure_status" -ne 0 ] && [ "$verify_status" -eq 0 ]; then
+  verify_status=$ensure_status
+fi
 
 exit "$verify_status"
