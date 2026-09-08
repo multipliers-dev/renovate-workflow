@@ -44,14 +44,14 @@ Do not blur hook infrastructure with commit checks or CI.
 
 | Layer | Question | Mechanism |
 | --- | --- | --- |
-| **1 — Hook availability** | Are Git hooks wired and runnable in *this* checkout? | `prepare-git-hooks.sh`, `verify-git-hooks.sh`, `ensure-hooks.sh`, `husky-shim-repair.sh`; `sessionStart` verify/repair/warn |
+| **1 — Hook availability** | Are Git hooks wired and runnable in *this* checkout? | `prepare-git-hooks.sh`, `verify-git-hooks.sh`, `ensure-hooks.sh`, `husky-shim-repair.sh`, `session-ensure-git-hooks.sh`; `sessionStart` verify/repair/warn |
 | **2a — Agent feedback** | Not used | No Prettier / `afterFileEdit` |
 | **2b — Commit correctness** | What must pass before a commit lands locally? | `.husky/pre-commit`: `npm test` then `npm run typecheck` |
 | **3 — Authoritative enforcement** | Backstop when local/agent machinery fails? | CI (`npm test`, `npm run typecheck`) |
 
 An agent must not assume Git hooks are active merely because `core.hooksPath` is configured. After `git worktree add`, run `npm run prepare` (or `npm run verify:git-hooks` after prepare) in the new worktree before committing.
 
-Cloud Agents: committed `.cursor/environment.json` runs `npm ci` (triggers `prepare`) then blocking `ENSURE_HOOKS_MODE=wait ENSURE_HOOKS_WAIT_SECS=120 sh scripts/ensure-hooks.sh` on start. Marketplace / plugin install does not wire this by itself. After merging lifecycle changes, trigger and promote a new environment Build.
+Cloud Agents: committed `.cursor/environment.json` runs `npm ci` (triggers `prepare`) then blocking `ENSURE_HOOKS_MODE=wait ENSURE_HOOKS_WAIT_SECS=120 sh scripts/ensure-hooks.sh` on start — no `cloud-agent-*` Node wrappers (no `.nvmrc` pin). Marketplace / plugin install does not wire this by itself. After merging lifecycle changes, trigger and promote a new environment Build.
 
 ## Discipline
 

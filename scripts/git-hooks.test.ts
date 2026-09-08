@@ -19,7 +19,7 @@ const huskyShimRepair = join(repoRoot, "scripts/husky-shim-repair.sh");
 const ensureHooks = join(repoRoot, "scripts/ensure-hooks.sh");
 const sessionEnsureScript = join(repoRoot, "scripts/session-ensure-git-hooks.sh");
 const sessionEnsure = join(repoRoot, ".cursor/hooks/ensure-git-hooks.sh");
-const cloudAgentStart = join(repoRoot, "scripts/cloud-agent-start.sh");
+const environmentJson = join(repoRoot, ".cursor/environment.json");
 
 function expectExecutable(path: string): void {
   expect(
@@ -55,7 +55,17 @@ describe("Layer 1 git hooks", () => {
     expectExecutable(ensureHooks);
     expectExecutable(sessionEnsureScript);
     expectExecutable(sessionEnsure);
-    expectExecutable(cloudAgentStart);
+  });
+
+  it("environment.json uses blocking ensure-hooks wait on start (no cloud-agent Node wrapper)", () => {
+    const env = JSON.parse(readFileSync(environmentJson, "utf8")) as {
+      install: string;
+      start: string;
+    };
+    expect(env.install).toBe("npm ci");
+    expect(env.start).toContain("ENSURE_HOOKS_MODE=wait");
+    expect(env.start).toContain("scripts/ensure-hooks.sh");
+    expect(env.start).not.toContain("cloud-agent");
   });
 
   it("ensure-hooks documents ENSURE_HOOKS_MODE wait/require fail-closed", () => {
