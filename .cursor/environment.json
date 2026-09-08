@@ -1,5 +1,5 @@
 {
   "name": "renovate-workflow",
   "install": "npm ci",
-  "start": "sh scripts/ensure-hooks.sh"
+  "start": "ENSURE_HOOKS_MODE=wait ENSURE_HOOKS_WAIT_SECS=120 sh scripts/ensure-hooks.sh"
 }

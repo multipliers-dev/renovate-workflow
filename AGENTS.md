@@ -51,7 +51,7 @@ Do not blur hook infrastructure with commit checks or CI.
 
 An agent must not assume Git hooks are active merely because `core.hooksPath` is configured. After `git worktree add`, run `npm run prepare` (or `npm run verify:git-hooks` after prepare) in the new worktree before committing.
 
-Cloud Agents: committed `.cursor/environment.json` runs `npm ci` (triggers `prepare`) then `sh scripts/ensure-hooks.sh`. Marketplace / plugin install does not wire this by itself. After merging lifecycle changes, trigger and promote a new environment Build.
+Cloud Agents: committed `.cursor/environment.json` runs `npm ci` (triggers `prepare`) then blocking `ENSURE_HOOKS_MODE=wait ENSURE_HOOKS_WAIT_SECS=120 sh scripts/ensure-hooks.sh` on start. Marketplace / plugin install does not wire this by itself. After merging lifecycle changes, trigger and promote a new environment Build.
 
 ## Discipline
 

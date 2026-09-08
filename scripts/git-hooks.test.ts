@@ -17,7 +17,9 @@ const prepareGitHooks = join(repoRoot, "scripts/prepare-git-hooks.sh");
 const verifyGitHooks = join(repoRoot, "scripts/verify-git-hooks.sh");
 const huskyShimRepair = join(repoRoot, "scripts/husky-shim-repair.sh");
 const ensureHooks = join(repoRoot, "scripts/ensure-hooks.sh");
+const sessionEnsureScript = join(repoRoot, "scripts/session-ensure-git-hooks.sh");
 const sessionEnsure = join(repoRoot, ".cursor/hooks/ensure-git-hooks.sh");
+const cloudAgentStart = join(repoRoot, "scripts/cloud-agent-start.sh");
 
 function expectExecutable(path: string): void {
   expect(
@@ -51,7 +53,29 @@ describe("Layer 1 git hooks", () => {
     expectExecutable(verifyGitHooks);
     expectExecutable(huskyShimRepair);
     expectExecutable(ensureHooks);
+    expectExecutable(sessionEnsureScript);
     expectExecutable(sessionEnsure);
+    expectExecutable(cloudAgentStart);
+  });
+
+  it("ensure-hooks documents ENSURE_HOOKS_MODE wait/require fail-closed", () => {
+    const src = readFileSync(ensureHooks, "utf8");
+    expect(src).toContain("ENSURE_HOOKS_MODE");
+    expect(src).toContain("wait");
+    expect(src).toContain("require");
+    expect(src).toContain("refusing silent skip");
+  });
+
+  it("prepare runs ensure-hooks last even when verify fails", () => {
+    const src = readFileSync(prepareGitHooks, "utf8");
+    expect(src).toContain("ensure-hooks.sh");
+    expect(src).toContain("ensure_status");
+  });
+
+  it("sessionStart hook matches session-ensure-git-hooks.sh primitive", () => {
+    expect(readFileSync(sessionEnsure, "utf8")).toBe(
+      readFileSync(sessionEnsureScript, "utf8"),
+    );
   });
 
   it("prepare sources the shared shim repair helper", () => {
@@ -60,8 +84,10 @@ describe("Layer 1 git hooks", () => {
     expect(src).toContain("attempt_husky_shim_repair");
   });
 
-  it("sessionStart documents a fail-open HOOKS NOT RUNNABLE warning", () => {
-    expect(readFileSync(sessionEnsure, "utf8")).toContain("HOOKS NOT RUNNABLE");
+  it("sessionStart documents fail-open warnings", () => {
+    const src = readFileSync(sessionEnsure, "utf8");
+    expect(src).toContain("HOOKS NOT RUNNABLE");
+    expect(src).toContain("HOOKS BRIDGE NOT LIVE");
   });
 
   it("verify fails in a checkout without executable shims", () => {
