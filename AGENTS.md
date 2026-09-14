@@ -25,11 +25,11 @@ Portable Renovate merge ladder — authoritative implementation for consumer rep
 
 | Skill | Path |
 | --- | --- |
-| Classifier | `.cursor/skills/renovate-classifier/` |
-| Loop | `.cursor/skills/renovate-loop/` |
-| Investigator | `.cursor/skills/renovate-investigator/` |
-| Maintainer | `.cursor/skills/renovate-maintainer/` |
-| Draft readiness | `.cursor/skills/renovate-draft-readiness/` |
+| Classifier | `skills/renovate-classifier/` |
+| Loop | `skills/renovate-loop/` |
+| Investigator | `skills/renovate-investigator/` |
+| Maintainer | `skills/renovate-maintainer/` |
+| Draft readiness | `skills/renovate-draft-readiness/` |
 
 ## Agents
 

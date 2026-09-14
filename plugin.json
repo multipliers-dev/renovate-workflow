@@ -1,4 +1,5 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "renovate-workflow",
   "version": "0.2.0",
   "description": "Portable Renovate merge ladder: classify, investigate, maintainer, loop orchestration.",
@@ -6,8 +7,8 @@
     "name": "Michael Truong",
     "email": "michael@multipliers.dev"
   },
+  "homepage": "https://github.com/multipliers-dev/renovate-workflow#readme",
   "repository": "https://github.com/multipliers-dev/renovate-workflow",
-  "keywords": ["renovate", "dependencies", "merge-ladder", "classifier", "maintainer"],
-  "skills": "./skills",
-  "agents": "./.agents"
+  "license": "MIT",
+  "keywords": ["renovate", "dependencies", "merge-ladder", "classifier", "maintainer"]
 }

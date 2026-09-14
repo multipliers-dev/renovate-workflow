@@ -16,7 +16,7 @@ Keep **parked draft Renovate PRs** visible by refreshing a readiness assessment 
 
 Supporting docs: [readiness-rubric.md](readiness-rubric.md), [comment-template.md](comment-template.md), [verification.md](verification.md).
 
-Operator runbook: [docs/renovate-workflow.md](../../../docs/renovate-workflow.md) (Parked drafts → Draft readiness). Active classify/loop draft-skip remains in [renovate-classifier](../renovate-classifier/SKILL.md) / [renovate-loop](../renovate-loop/SKILL.md).
+Operator runbook: [docs/renovate-workflow.md](../../docs/renovate-workflow.md) (Parked drafts → Draft readiness). Active classify/loop draft-skip remains in [renovate-classifier](../renovate-classifier/SKILL.md) / [renovate-loop](../renovate-loop/SKILL.md).
 
 ## Governance
 
@@ -77,7 +77,7 @@ Process **one** draft Renovate PR per invocation:
 2. Select FIFO lowest draft number, or explicit `#` **in the draft Renovate set**
 3. Assess readiness per [readiness-rubric.md](readiness-rubric.md)
 4. Re-fetch evidence gate (open + draft + Renovate + `head_sha` bind) — **before** any success report
-5. Write gitignored report from [`.agents/templates/renovate-draft-readiness-report.md`](../../../.agents/templates/renovate-draft-readiness-report.md)
+5. Write gitignored report from [`.agents/templates/renovate-draft-readiness-report.md`](../../.agents/templates/renovate-draft-readiness-report.md)
 6. Upsert the managed comment per [comment-template.md](comment-template.md)
 
 ## Steps
@@ -219,7 +219,7 @@ Keep assessment working notes in chat/memory only until §4 passes — **do not*
 
 Only after §4 **passes** (bound `head_sha` matches live head).
 
-Fill [`.agents/templates/renovate-draft-readiness-report.md`](../../../.agents/templates/renovate-draft-readiness-report.md).
+Fill [`.agents/templates/renovate-draft-readiness-report.md`](../../.agents/templates/renovate-draft-readiness-report.md).
 
 Path: `.agent-runs/renovate/{YYYY-MM-DD}-pr-{N}-draft-readiness.md` (local date `Australia/Sydney` unless the operator specifies otherwise).
 
@@ -271,6 +271,6 @@ Post:
 - Comment template: [comment-template.md](comment-template.md)
 - Verification: [verification.md](verification.md)
 - Classifier identity / active queue: [renovate-classifier/SKILL.md](../renovate-classifier/SKILL.md)
-- Policy preview scope: [readiness-rubric.md](readiness-rubric.md) §5 (consumer `.agents/renovate-policy.yml` + [policy-rubric.base.md](../../../.agents/policy-rubric.base.md); no merge recommendations)
-- Policy file: [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml)
-- Runbook: [docs/renovate-workflow.md](../../../docs/renovate-workflow.md)
+- Policy preview scope: [readiness-rubric.md](readiness-rubric.md) §5 (consumer `.agents/renovate-policy.yml` + [policy-rubric.base.md](../../.agents/policy-rubric.base.md); no merge recommendations)
+- Policy file: [`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml)
+- Runbook: [docs/renovate-workflow.md](../../docs/renovate-workflow.md)

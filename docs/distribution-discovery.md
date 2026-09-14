@@ -12,9 +12,9 @@ Evidence for the minimum local boundary when adopting the Renovate ladder via **
 
 | Asset | Plugin-only? | Evidence |
 | --- | --- | --- |
-| **Skills** (5 × `renovate-*`) | **Yes** | Manifest `"skills": ".cursor/skills"`; invoke via `/renovate-classifier`, etc. GitHub marketplace install clones skills with the plugin ([Cursor component discovery](https://cursor.com/docs/reference/plugins)). |
+| **Skills** (5 × `renovate-*`) | **Yes** | Fixed `skills/` (Agent Plugins 1.0) + Cursor manifest `"skills": "./skills"`; invoke via `/renovate-classifier`, etc. GitHub marketplace install clones skills with the plugin ([Cursor component discovery](https://cursor.com/docs/reference/plugins)). |
 | **Runbook** (`docs/renovate-workflow.md`) | **Yes** | Shipped in the same repo clone; skill/agent cross-links use relative paths. |
-| **Portable rubric** (`policy-rubric.base.md`) | **Yes (via plugin)** | Lives in `.agents/`; classifier skills link `../../../.agents/policy-rubric.base.md`. |
+| **Portable rubric** (`policy-rubric.base.md`) | **Yes (via plugin)** | Lives in `.agents/`; classifier skills link `../../.agents/policy-rubric.base.md`. |
 | **Policy template** (`renovate-policy.template.yml`) | **Yes (via plugin)** | Bootstrap only; consumer copies to `.agents/renovate-policy.yml`. |
 | **Agent prompts** (`renovate-maintainer.md`, `renovate-investigator.md`) | **Plugin + skill invoke** | Manifest `"agents": ".agents"`. `@.agents/` in copy/paste blocks resolves from the **consumer workspace**, not plugin cache. **Mitigation:** invoke `/renovate-maintainer` and `/renovate-investigator`. |
 | **Report templates** (`.agents/templates/*.md`) | **Yes (via plugin)** | Reports written under consumer `.agent-runs/renovate/`; template content read from plugin `.agents/templates/` via skill links. |
@@ -24,7 +24,7 @@ Evidence for the minimum local boundary when adopting the Renovate ladder via **
 
 ## Consumer-workspace access to `.agents/renovate-policy.yml`
 
-Classifier, maintainer, loop, and investigator skills **must read** consumer `.agents/renovate-policy.yml` from the **active workspace** (see `.cursor/skills/renovate-classifier/SKILL.md` §1).
+Classifier, maintainer, loop, and investigator skills **must read** consumer `.agents/renovate-policy.yml` from the **active workspace** (see `skills/renovate-classifier/SKILL.md` §1).
 
 Repo-specific facts (package lists, CI bindings, `repo.renovate_branch_prefix`) **cannot** live only in plugin cache.
 
@@ -57,7 +57,7 @@ Classifier §2.7 (`/renovate-loop --babysit`) is the only skill path that shells
 renovate-workflow (marketplace + plugin + npm package)   Consumer repo (facts + runtime)
 ├── .cursor-plugin/marketplace.json                        ├── .agents/renovate-policy.yml  ← required
 ├── .cursor-plugin/plugin.json                             ├── renovate.json
-├── .cursor/skills/                                        ├── .github/workflows/renovate.yml
+├── skills/                                        ├── .github/workflows/renovate.yml
 ├── .agents/ (portable prompts, rubric)                    ├── .gitignore → .agent-runs/renovate/
 ├── docs/                                                  └── package.json devDeps:
 ├── scripts/                                                   renovate-workflow (github:…)

@@ -15,7 +15,7 @@ Review **one open Renovate PR per run** in the active repository. **Prefer GitHu
 
 When invoked by `/renovate-loop --babysit`, the branch-update freshness gate may remain attached through bounded post-update GitHub settling and required PR CI completion. Standalone `/renovate-classifier` and normal `/renovate-loop` runs do not recheck.
 
-Classification rules: load consumer [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml), then apply [policy-rubric.base.md`](../../../.agents/policy-rubric.base.md) via [policy-rubric.md](policy-rubric.md). Execution packet schema: [packet-schema.md](packet-schema.md).
+Classification rules: load consumer [`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml), then apply [policy-rubric.base.md`](../../.agents/policy-rubric.base.md) via [policy-rubric.md](policy-rubric.md). Execution packet schema: [packet-schema.md](packet-schema.md).
 
 ## Task
 
@@ -62,9 +62,9 @@ From the active workspace git remote, resolve `owner` and `repo` (e.g. `git remo
 - `check_assembly` + `checks.*` for `required_checks` assembly
 - `version` for packet `policy_version`
 
-Portable interpretation logic: [policy-rubric.base.md](../../../.agents/policy-rubric.base.md). Programmatic lookup helpers: [`scripts/lib/renovate-policy-facts.ts`](../../../scripts/lib/renovate-policy-facts.ts).
+Portable interpretation logic: [policy-rubric.base.md](../../.agents/policy-rubric.base.md). Programmatic lookup helpers: [`scripts/lib/renovate-policy-facts.ts`](../../scripts/lib/renovate-policy-facts.ts).
 
-If `.agents/renovate-policy.yml` is missing, **stop** and instruct the operator to copy [renovate-policy.template.yml](../../../.agents/renovate-policy.template.yml).
+If `.agents/renovate-policy.yml` is missing, **stop** and instruct the operator to copy [renovate-policy.template.yml](../../.agents/renovate-policy.template.yml).
 
 ### 2. Discover open Renovate PRs
 
@@ -246,7 +246,7 @@ From title/body extract:
 
 Renovate `groupName` (if present) describes batching topology only — **not** `risk_class`. Classify from bumped package names, semver, changed paths, and consumer policy lists; a grouped PR may mix high-touch and low-risk packages.
 
-Apply loaded consumer policy facts with [policy-rubric.base.md](../../../.agents/policy-rubric.base.md) in this order:
+Apply loaded consumer policy facts with [policy-rubric.base.md](../../.agents/policy-rubric.base.md) in this order:
 
 1. **Defer** triggers
 2. **Review manually** triggers (major semver applies **except** low-risk tooling devDep majors meeting **Low-risk tooling major → agent review**)
@@ -254,7 +254,7 @@ Apply loaded consumer policy facts with [policy-rubric.base.md](../../../.agents
 4. Else if **all Safe to merge** gates in policy-rubric.base are satisfied → **merge**
 5. Else → **review manually**
 
-Assign **risk** (low / medium / high) per rubric.base. Derive packet fields per [policy-rubric.base.md — Rubric outcome → packet fields](../../../.agents/policy-rubric.base.md#rubric-outcome--packet-fields) and [packet-schema.md](packet-schema.md). Never execute merges.
+Assign **risk** (low / medium / high) per rubric.base. Derive packet fields per [policy-rubric.base.md — Rubric outcome → packet fields](../../.agents/policy-rubric.base.md#rubric-outcome--packet-fields) and [packet-schema.md](packet-schema.md). Never execute merges.
 
 ### 5. Report
 
@@ -296,16 +296,16 @@ After the detailed notes, emit machine-readable handoff per [packet-schema.md](p
 
 1. **Batch envelope** — one fenced YAML block with `packet_version`, `repo`, `generated_at`, `discovery` (same counts as discovery reconciliation), `selected_pr`, and `queue_remaining`.
 2. **Per-PR packet** — **one** fenced YAML block for the selected PR. Every packet **must** include:
-   - `policy_version` from `version` in [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml) at classification time
+   - `policy_version` from `version` in [`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml) at classification time
    - `pr.head_sha` from `get` at classification time (**after** any §2.7 branch update and, when `/renovate-loop --babysit` resolves settling, from the check that returned `CLEAN`)
    - `evidence_checked_at` (ISO8601 when evidence was fetched)
    - `base_freshness` (audit trail from §2.6–§2.7)
-   - `classification.decision`, `merge_authority`, `risk_class` per [policy-rubric.base.md](../../../.agents/policy-rubric.base.md)
+   - `classification.decision`, `merge_authority`, `risk_class` per [policy-rubric.base.md](../../.agents/policy-rubric.base.md)
    - `evidence` including `pr_file_count`, `package_count`, `lockfile_maintenance`, `lockfile_delta` (with `line_delta_limit`, `within_threshold`, `threshold_flags`), and `workflow_changes` when workflows touched
    - `required_checks` assembled per [check assembly rules](packet-schema.md#required_checks-assembly-classifier)
    - `human_required_if` (full watch list) and `triggered_human_required` (conditions already fired)
    - `stop` / `stop_reason` when `triggered_human_required` is non-empty or `decision` is `human_required` / `defer`
-   - `stop_causes` when `stop: true` — derive with [`scripts/lib/derive-stop-causes.ts`](../../../scripts/lib/derive-stop-causes.ts); required on every stopped packet
+   - `stop_causes` when `stop: true` — derive with [`scripts/lib/derive-stop-causes.ts`](../../scripts/lib/derive-stop-causes.ts); required on every stopped packet
 
 Do **not** merge, approve, comment, or close PRs while emitting the packet.
 
@@ -313,7 +313,7 @@ Do **not** merge, approve, comment, or close PRs while emitting the packet.
 
 After the packet, emit **one** copy/paste block for manual execution (skip when recommendation is `defer`).
 
-**Route by packet shape** — run [`evaluateInvestigationEligibility`](../../../scripts/lib/renovate-investigation-eligibility.ts) against live [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml) when `stop: true`. **Mandatory** — do not use heuristic substitutes; `eligible: true` → investigator handoff, `eligible: false` → hard stop.
+**Route by packet shape** — run [`evaluateInvestigationEligibility`](../../scripts/lib/renovate-investigation-eligibility.ts) against live [`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml) when `stop: true`. **Mandatory** — do not use heuristic substitutes; `eligible: true` → investigator handoff, `eligible: false` → hard stop.
 
 | Packet shape                                                     | Handoff target                                                             |
 | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -330,7 +330,7 @@ Stop and report if policy_version differs from renovate-policy.yml at preflight 
 Re-run `/renovate-classifier` after maintainer to classify the next FIFO item.
 ```
 
-Reference `@.agents/renovate-maintainer.md` and the full copy/paste prompt in [`.agents/renovate-maintainer.md`](../../../.agents/renovate-maintainer.md).
+Reference `@.agents/renovate-maintainer.md` and the full copy/paste prompt in [`.agents/renovate-maintainer.md`](../../.agents/renovate-maintainer.md).
 
 **Investigation handoff** (`stop: true`, investigation-eligible):
 
@@ -342,7 +342,7 @@ Do not merge. Do not invoke maintainer or --approved from this step.
 After you audit the investigation report, open a fresh chat with /renovate-maintainer --approved plus packet and overlay.
 ```
 
-Reference `@.agents/renovate-investigator.md` and the full copy/paste prompt in [`.agents/renovate-investigator.md`](../../../.agents/renovate-investigator.md).
+Reference `@.agents/renovate-investigator.md` and the full copy/paste prompt in [`.agents/renovate-investigator.md`](../../.agents/renovate-investigator.md).
 
 **Hard stop** (`stop: true`, not investigation-eligible): state that the packet is not maintainer- or investigation-handoff eligible; include `stop_causes` in the summary; operator reviews on GitHub or defers.
 
@@ -364,7 +364,7 @@ Reference `@.agents/renovate-investigator.md` and the full copy/paste prompt in 
 
 ## References
 
-- Classification policy: [policy-rubric.base.md](../../../.agents/policy-rubric.base.md) (load consumer `.agents/renovate-policy.yml` first)
+- Classification policy: [policy-rubric.base.md](../../.agents/policy-rubric.base.md) (load consumer `.agents/renovate-policy.yml` first)
 - Execution packet schema: [packet-schema.md](packet-schema.md)
 - Renovate config: `renovate.json`
 - CI workflow: `.github/workflows/ci.yml`

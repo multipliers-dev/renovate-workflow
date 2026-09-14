@@ -19,13 +19,13 @@ Apply within the **renovate-classifier** skill only.
 ## Required workflow
 
 1. **Load** consumer `.agents/renovate-policy.yml` at the start of every classify run (before package or path classification).
-2. **Apply** portable interpretation in [policy-rubric.base.md](../../../.agents/policy-rubric.base.md) using loaded facts.
+2. **Apply** portable interpretation in [policy-rubric.base.md](../../.agents/policy-rubric.base.md) using loaded facts.
 3. **Derive** packets per [packet-schema.md](packet-schema.md).
 
-Programmatic helpers (tests + maintainer): [`scripts/lib/renovate-policy-facts.ts`](../../../scripts/lib/renovate-policy-facts.ts).
+Programmatic helpers (tests + maintainer): [`scripts/lib/renovate-policy-facts.ts`](../../scripts/lib/renovate-policy-facts.ts).
 
-Synthetic example policy for contract tests: [examples/example-repo/renovate-policy.yml](../../../examples/example-repo/renovate-policy.yml).
+Synthetic example policy for contract tests: [examples/example-repo/renovate-policy.yml](../../examples/example-repo/renovate-policy.yml).
 
-Template for new consumers: [renovate-policy.template.yml](../../../.agents/renovate-policy.template.yml).
+Template for new consumers: [renovate-policy.template.yml](../../.agents/renovate-policy.template.yml).
 
-Sync model: [docs/policy-setup.md](../../../docs/policy-setup.md).
+Sync model: [docs/policy-setup.md](../../docs/policy-setup.md).

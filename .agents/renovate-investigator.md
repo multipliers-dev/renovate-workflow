@@ -1,6 +1,6 @@
 # Renovate investigator agent
 
-Executor prompt for investigation-eligible Renovate evidence gathering (`high_touch_tooling` or `unlisted_package` with only overridable classifier stops; investigation-approved execution remains restricted to dependency-only allowed paths). Consumes a classifier execution packet from [renovate-classifier](../.cursor/skills/renovate-classifier/SKILL.md) and writes a gitignored investigation report from [templates/renovate-investigation-report.md](templates/renovate-investigation-report.md).
+Executor prompt for investigation-eligible Renovate evidence gathering (`high_touch_tooling` or `unlisted_package` with only overridable classifier stops; investigation-approved execution remains restricted to dependency-only allowed paths). Consumes a classifier execution packet from [renovate-classifier](../skills/renovate-classifier/SKILL.md) and writes a gitignored investigation report from [templates/renovate-investigation-report.md](templates/renovate-investigation-report.md).
 
 **Read-only GitHub:** investigation re-fetches PR evidence in normal and **`chat only`** modes but does not merge, approve, comment, or update branches.
 
@@ -15,27 +15,27 @@ Unlike the maintainer agent, this executor has **no merge authority** and never 
 3. Paste the [copy/paste prompt](#copypaste-prompt) with the classifier packet YAML.
 4. Default invocation writes `.agent-runs/renovate/{YYYY-MM-DD}-pr-{N}-investigation.md` and emits a production-executable overlay in chat when verdict is `ready_for_human_merge` (**normal** mode only).
 
-Operator context: four-step evidence model in [investigation-checklist.md](../.cursor/skills/renovate-investigator/investigation-checklist.md).
+Operator context: four-step evidence model in [investigation-checklist.md](../skills/renovate-investigator/investigation-checklist.md).
 
 ---
 
 ## Input
 
-- Classifier execution packet YAML (per [packet-schema.md](../.cursor/skills/renovate-classifier/packet-schema.md))
+- Classifier execution packet YAML (per [packet-schema.md](../skills/renovate-classifier/packet-schema.md))
 - Optional modifier: `chat only` — chat summary only; no report; no executable overlay
-- Optional modifier: `fixture verification` — offline vitest #402 shape check; see skill [Invocation modes](../.cursor/skills/renovate-investigator/SKILL.md#invocation-modes)
+- Optional modifier: `fixture verification` — offline vitest #402 shape check; see skill [Invocation modes](../skills/renovate-investigator/SKILL.md#invocation-modes)
 
 ---
 
 ## Responsibilities (ordered)
 
-Execute per [renovate-investigator SKILL.md](../.cursor/skills/renovate-investigator/SKILL.md):
+Execute per [renovate-investigator SKILL.md](../skills/renovate-investigator/SKILL.md):
 
 1. **Preflight** — GitHub MCP or `gh` read-only for normal/chat only; fixture verification may use mocked live evidence
 2. **Eligibility** — `evaluateInvestigationEligibility(packet, policy)`; on failure, verdict `not_eligible` and halt investigation (skip four-step work and overlay)
 3. **Freshness binding** — live re-fetch (normal/chat only) or mocked live fixture (fixture verification); on drift, verdict `stale_packet` and halt investigation
-4. **Four-step investigation** — [investigation-checklist.md](../.cursor/skills/renovate-investigator/investigation-checklist.md)
-5. **Verdict** — [investigation-rubric.md](../.cursor/skills/renovate-investigator/investigation-rubric.md)
+4. **Four-step investigation** — [investigation-checklist.md](../skills/renovate-investigator/investigation-checklist.md)
+5. **Verdict** — [investigation-rubric.md](../skills/renovate-investigator/investigation-rubric.md)
 6. **Report** — fill template; write to `.agent-runs/renovate/{YYYY-MM-DD}-pr-{N}-investigation.md` in normal and fixture verification only
 7. **Handoff** — production-executable overlay in **normal** when `ready_for_human_merge`; `verification_only` + `expected_overlay` in **fixture verification** only
 
@@ -93,7 +93,7 @@ Do not merge. Do not approve or comment on the PR. Do not invoke maintainer.
 Offline operator verification — writes report; emits `verification_only` + `expected_overlay`; does **not** re-fetch live PR #402; **not** for maintainer handoff.
 
 ```
-@.cursor/skills/renovate-investigator/SKILL.md
+@skills/renovate-investigator/SKILL.md
 
 fixture verification
 Investigate using scripts/fixtures/renovate-packets/high-touch-patch-investigate.yaml as the classifier packet (vitest #402 shape).
@@ -107,9 +107,9 @@ Do not merge. Do not invoke maintainer. Do not re-fetch live PR #402.
 
 ## References
 
-- Skill: [renovate-investigator SKILL.md](../.cursor/skills/renovate-investigator/SKILL.md)
-- Checklist: [investigation-checklist.md](../.cursor/skills/renovate-investigator/investigation-checklist.md)
-- Rubric: [investigation-rubric.md](../.cursor/skills/renovate-investigator/investigation-rubric.md)
-- Verification: [verification.md](../.cursor/skills/renovate-investigator/verification.md)
-- Classifier: [renovate-classifier SKILL.md](../.cursor/skills/renovate-classifier/SKILL.md)
+- Skill: [renovate-investigator SKILL.md](../skills/renovate-investigator/SKILL.md)
+- Checklist: [investigation-checklist.md](../skills/renovate-investigator/investigation-checklist.md)
+- Rubric: [investigation-rubric.md](../skills/renovate-investigator/investigation-rubric.md)
+- Verification: [verification.md](../skills/renovate-investigator/verification.md)
+- Classifier: [renovate-classifier SKILL.md](../skills/renovate-classifier/SKILL.md)
 - Policy: consumer `.agents/renovate-policy.yml` (template: [renovate-policy.template.yml](renovate-policy.template.yml))

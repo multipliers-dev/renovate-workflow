@@ -4,7 +4,7 @@ overview: Add a portable Agent Plugins 1.0 root manifest and relocate skills to 
 todos:
   - id: agent-plugins-migration
     content: "PR: Agent Plugins 1.0 root plugin.json, skills/ move, Cursor manifest update, cross-ref updates, validate-plugin-structure test, docs, 0.2.0 bump"
-    status: pending
+    status: completed
   - id: plan-closure
     content: "Docs-only PR after agent-plugins-migration merges: add # Shipped note, move plan to .cursor/plans/archive/2026-09-14-agent-plugins-1.0-migration.plan.md"
     status: pending

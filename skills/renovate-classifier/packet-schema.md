@@ -2,7 +2,7 @@
 
 Machine-readable handoff from **renovate-classifier** (classifier) to the renovate maintainer agent (executor). The classifier emits YAML in fenced blocks; the executor reads this schema and the packet list in `required_checks` as authoritative.
 
-**Policy sync note:** `classification.risk_class` values must match consumer `.agents/renovate-policy.yml` `risk_classes` buckets. Portable interpretation: [`.agents/policy-rubric.base.md`](../../../.agents/policy-rubric.base.md). Template: [`.agents/renovate-policy.template.yml`](../../../.agents/renovate-policy.template.yml).
+**Policy sync note:** `classification.risk_class` values must match consumer `.agents/renovate-policy.yml` `risk_classes` buckets. Portable interpretation: [`.agents/policy-rubric.base.md`](../../.agents/policy-rubric.base.md). Template: [`.agents/renovate-policy.template.yml`](../../.agents/renovate-policy.template.yml).
 
 ---
 
@@ -110,7 +110,7 @@ Declarative workflow input for the **investigation-approved maintainer path** (`
 
 **Required pairing:** overlay + invocation `--approved`. Maintainer hard-stops on mismatch.
 
-**Overlay contains workflow inputs only** — no `execution_authority`, `human_approval`, or `merge_authority` fields. Authority is derived at execute time via `evaluateEffectiveExecutionAuthority` in [`scripts/lib/renovate-guardrails.ts`](../../../scripts/lib/renovate-guardrails.ts).
+**Overlay contains workflow inputs only** — no `execution_authority`, `human_approval`, or `merge_authority` fields. Authority is derived at execute time via `evaluateEffectiveExecutionAuthority` in [`scripts/lib/renovate-guardrails.ts`](../../scripts/lib/renovate-guardrails.ts).
 
 ```yaml
 execution_mode: investigation_approved
@@ -146,7 +146,7 @@ Re-run `/renovate-classifier` to refresh the packet. `base_freshness` on the pac
 
 ## Policy version drift
 
-The classifier sets `policy_version` from `version` in [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml) at classification time. The executor **must stop** (do not merge) if `packet.policy_version` is missing or does not equal the live `renovate-policy.yml` `version` at **preflight** or **immediately before merge** (after steps 2–6 may re-read policy and take minutes) — re-run `/renovate-classifier` so the decision is made under current merge rules.
+The classifier sets `policy_version` from `version` in [`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml) at classification time. The executor **must stop** (do not merge) if `packet.policy_version` is missing or does not equal the live `renovate-policy.yml` `version` at **preflight** or **immediately before merge** (after steps 2–6 may re-read policy and take minutes) — re-run `/renovate-classifier` so the decision is made under current merge rules.
 
 Bump `renovate-policy.yml` `version` when merge authority, `risk_classes`, or check semantics change; update the classifier and packet schema in the same PR.
 
@@ -172,7 +172,7 @@ Shared with `.agents/renovate-policy.yml`. The executor looks up the packet valu
 | `sensitive_path_change`        | `human_required`        | `denied`                     |
 | `renovate_config_change`       | `human_required`        | `denied`                     |
 
-Full rubric → packet mapping: [policy-rubric.base.md — Rubric outcome → packet fields](../../../.agents/policy-rubric.base.md#rubric-outcome--packet-fields).
+Full rubric → packet mapping: [policy-rubric.base.md — Rubric outcome → packet fields](../../.agents/policy-rubric.base.md#rubric-outcome--packet-fields).
 
 ---
 
@@ -181,7 +181,7 @@ Full rubric → packet mapping: [policy-rubric.base.md — Rubric outcome → pa
 - **`human_required_if`** — latent stop conditions the executor must watch for during inspection (not yet confirmed). Always include the full watch list for the PR's risk profile even when no triggers have fired yet.
 - **`triggered_human_required`** — conditions that **already fired** at classification time. Populate from rubric triggers that are definitive now (e.g. sensitive path touched → `implementation_changes_required`; lockfile threshold exceeded → `lockfile_threshold_exceeded`; runtime dep bump → `runtime_behavior_affected`; CI red/unknown → `ci_failure_unexplained`).
 
-When `triggered_human_required` is non-empty **or** `decision` is `human_required` or `defer`, set `stop: true`, `stop_reason` (human audit prose only), and **`stop_causes`** (structured policy input — required when `stop: true`). Derive `stop_causes` with [`scripts/lib/derive-stop-causes.ts`](../../../scripts/lib/derive-stop-causes.ts) — do not invent ad-hoc keys. The executor stops immediately without attempting merge. Only `auto_merge_eligible` and `agent_review_required` packets use `stop: false` at classification time.
+When `triggered_human_required` is non-empty **or** `decision` is `human_required` or `defer`, set `stop: true`, `stop_reason` (human audit prose only), and **`stop_causes`** (structured policy input — required when `stop: true`). Derive `stop_causes` with [`scripts/lib/derive-stop-causes.ts`](../../scripts/lib/derive-stop-causes.ts) — do not invent ad-hoc keys. The executor stops immediately without attempting merge. Only `auto_merge_eligible` and `agent_review_required` packets use `stop: false` at classification time.
 
 ### Stop causes (`stop_causes`)
 
@@ -249,7 +249,7 @@ Do **not** add `lockfile_within_threshold` when lockfile unchanged (e.g. workflo
 
 ## Lockfile gates
 
-Derive from [policy-rubric.base.md — Lockfile impact](../../../.agents/policy-rubric.base.md#lockfile-impact) and consumer `checks.lockfile_within_threshold.thresholds`:
+Derive from [policy-rubric.base.md — Lockfile impact](../../.agents/policy-rubric.base.md#lockfile-impact) and consumer `checks.lockfile_within_threshold.thresholds`:
 
 - Set `lockfile_maintenance: true` when Renovate PR title/body indicates lock file maintenance (e.g. "Lock file maintenance") **or** changed files are lockfiles only with no `package.json` version bumps.
 - Set `line_delta_limit` to **2000** when `lockfile_maintenance: true`, else **800**.
