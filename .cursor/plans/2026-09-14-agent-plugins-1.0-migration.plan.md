@@ -116,7 +116,7 @@ No `mcp.json`. No duplicate skill tree. Remove empty `.cursor/skills/` after mov
 2. `git mv .cursor/skills/* skills/`; fix in-skill relative links (e.g. `../../../.agents` → `../../.agents`).
 3. Update `.cursor-plugin/plugin.json`: `"skills": "./skills"`, `"agents": "./.agents"`, version **0.2.0**.
 4. Bulk-update `.cursor/skills/` → `skills/` in agents, docs, tests, policy `sensitive_paths`, verification blocks.
-5. Add `scripts/validate-plugin-structure.test.ts` (wired into `npm test`).
+5. Add `scripts/validate-plugin-structure.test.ts` (wired into `npm test`). Assert the closed portable schema: root `plugin.json` permits only Agent Plugins top-level fields (`$schema`, `name`, `version`, `description`, `author`, `homepage`, `repository`, `license`, `keywords`, `extensions`). **Do not relax this test** if implementation tempts convenience fields (`skills`, `agents`, etc.) — put those in `.cursor-plugin/plugin.json` only.
 6. Bump `package.json` to **0.2.0**; update `docs/versioning.md`, `docs/adopt.md`, `README.md` with portable vs Cursor layer table and upgrade note.
 7. Mark `agent-plugins-migration` completed in plan frontmatter in the implementation PR.
 
@@ -124,7 +124,7 @@ No `mcp.json`. No duplicate skill tree. Remove empty `.cursor/skills/` after mov
 
 - `npm test` and `npm run typecheck` pass.
 - No remaining `.cursor/skills` references outside archived plans.
-- Root `plugin.json` conforms to closed Agent Plugins schema (no component path fields).
+- Root `plugin.json` conforms to closed Agent Plugins schema (no component path fields or other non-portable top-level keys). If Cursor suggests extra convenience fields during implementation, **reject them** — fix the manifest, not the test.
 - Version **0.2.0** aligned across `package.json`, root `plugin.json`, `.cursor-plugin/plugin.json`.
 - Post-merge: marketplace import still lists plugin; `/renovate-classifier` resolves from installed plugin.
 
@@ -223,7 +223,7 @@ Topology: start from latest origin/main; branch represents only this slice; PR b
 
 Deliverables: per the plan slice — root Agent Plugins 1.0 plugin.json; move skills to skills/; update .cursor-plugin/plugin.json; bulk-update cross-references; add validate-plugin-structure.test.ts; bump to 0.2.0 across package.json and both manifests; document portable vs Cursor layers in adopt.md/README and versioning.md. Mark agent-plugins-migration completed in plan frontmatter in this PR.
 
-Verification: npm test; npm run typecheck; grep for stale .cursor/skills references outside archived plans.
+Verification: npm test; npm run typecheck; grep for stale .cursor/skills references outside archived plans. Root plugin.json must pass the closed-schema test as written — do not add convenience fields to the portable manifest or weaken validation to accept them.
 ```
 
 ### plan-closure
