@@ -1,0 +1,124 @@
+name: Agent Plugins spec drift
+
+on:
+  schedule:
+    # Monday 09:00 UTC — low-noise advisory check
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  AGENT_PLUGINS_DRIFT_ASSIGNEE: mastermichaelt
+  AGENT_PLUGINS_DRIFT_LABEL: agent-plugins-spec-drift
+
+jobs:
+  check-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run advisory spec drift check
+        id: drift
+        run: |
+          set -euo pipefail
+          npm run check:agent-plugins-spec-drift -- --json > drift-result.json
+          echo "result_path=drift-result.json" >> "$GITHUB_OUTPUT"
+      - name: Ensure drift label exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh label list --json name --jq '.[].name' | grep -Fxq "$AGENT_PLUGINS_DRIFT_LABEL"; then
+            gh label create "$AGENT_PLUGINS_DRIFT_LABEL" \
+              --description "Advisory: repo targets an older published Agent Plugins spec" \
+              --color "FBCA04"
+          fi
+      - name: Manage advisory drift issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          RELATIONSHIP=$(jq -r '.relationship' drift-result.json)
+          DECLARED=$(jq -r '.declaredVersion' drift-result.json)
+          LATEST=$(jq -r '.latestPublishedVersion' drift-result.json)
+          PUBLISHED_SPEC=$(jq -r '.publishedSpecUrl' drift-result.json)
+          PUBLISHED_SCHEMA=$(jq -r '.publishedSchemaUrl' drift-result.json)
+
+          issue_body() {
+            cat <<EOF
+          ## Agent Plugins spec drift (advisory)
+
+          This issue is **advisory only**. The plugin remains valid against its declared spec, and blocking conformance CI (\`npm test\` / \`validate-plugin-structure\`) is unchanged. Migration is manual reviewed work — no automatic PRs or \`plugin.json\` edits.
+
+          | | Version |
+          | --- | --- |
+          | Declared in \`plugin.json\` | \`${DECLARED}\` |
+          | Latest published upstream | \`${LATEST}\` |
+
+          - [Agent Plugins specification](${PUBLISHED_SPEC})
+          - Published schema: \`${PUBLISHED_SCHEMA}\`
+
+          Run locally: \`npm run check:agent-plugins-spec-drift -- --json\`
+          EOF
+          }
+
+          # Deduplication: one open issue per label. Refresh body when already tracking the
+          # same latestPublishedVersion; supersede title/body when upstream published version moves.
+          OPEN_ISSUES_JSON=$(gh issue list \
+            --label "$AGENT_PLUGINS_DRIFT_LABEL" \
+            --state open \
+            --json number,title,body \
+            --limit 20)
+
+          OPEN_COUNT=$(echo "$OPEN_ISSUES_JSON" | jq 'length')
+
+          case "$RELATIONSHIP" in
+            behind)
+              TITLE="Agent Plugins ${LATEST} available — review migration"
+              BODY=$(issue_body)
+
+              if [ "$OPEN_COUNT" -eq 0 ]; then
+                gh issue create \
+                  --title "$TITLE" \
+                  --body "$BODY" \
+                  --label "$AGENT_PLUGINS_DRIFT_LABEL" \
+                  --assignee "$AGENT_PLUGINS_DRIFT_ASSIGNEE"
+                exit 0
+              fi
+
+              ISSUE_NUMBER=$(echo "$OPEN_ISSUES_JSON" | jq -r '.[0].number')
+              EXISTING_TITLE=$(echo "$OPEN_ISSUES_JSON" | jq -r '.[0].title')
+
+              if [ "$EXISTING_TITLE" = "$TITLE" ]; then
+                gh issue edit "$ISSUE_NUMBER" --body "$BODY"
+              else
+                gh issue edit "$ISSUE_NUMBER" --title "$TITLE" --body "$BODY"
+              fi
+              ;;
+            current)
+              if [ "$OPEN_COUNT" -eq 0 ]; then
+                echo "No open drift issues to close."
+                exit 0
+              fi
+
+              echo "$OPEN_ISSUES_JSON" | jq -r '.[].number' | while read -r ISSUE_NUMBER; do
+                gh issue close "$ISSUE_NUMBER" \
+                  --comment "Repo now targets latest published Agent Plugins spec (${LATEST})."
+              done
+              ;;
+            ahead)
+              echo "::warning::Declared Agent Plugins spec (${DECLARED}) exceeds discovered published spec (${LATEST}). Upstream discovery may have regressed, or the repo may intentionally target a not-yet-observed version. No advisory issue was created, updated, or closed."
+              ;;
+            *)
+              echo "Unexpected relationship: ${RELATIONSHIP}" >&2
+              exit 1
+              ;;
+          esac
