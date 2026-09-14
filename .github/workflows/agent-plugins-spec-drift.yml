@@ -28,7 +28,8 @@ jobs:
         id: drift
         run: |
           set -euo pipefail
-          npm run check:agent-plugins-spec-drift -- --json > drift-result.json
+          # --silent keeps npm lifecycle lines off stdout so drift-result.json stays valid JSON.
+          npm run --silent check:agent-plugins-spec-drift -- --json > drift-result.json
           echo "result_path=drift-result.json" >> "$GITHUB_OUTPUT"
       - name: Ensure drift label exists
         env:
