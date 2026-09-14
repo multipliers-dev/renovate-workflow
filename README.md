@@ -1,6 +1,6 @@
 # renovate-workflow
 
-Governed Renovate merge ladder for Cursor: classify dependency PRs, investigate high-risk changes, and merge only when repo-local policy and human gates allow.
+Governed Renovate merge ladder with an Agent Plugins 1.0 portable core and Cursor-specific integration: classify dependency PRs, investigate high-risk changes, and merge only when repo-local policy and human gates allow.
 
 Renovate opens many dependency PRs. This product turns that queue into a repeatable **classify → route → (investigate) → maintainer** path with explicit policy, instead of ad-hoc merges.
 
@@ -16,7 +16,7 @@ classify (/renovate-classifier)
 
 | Layer | Where it lives |
 | --- | --- |
-| Skills, agents, runbook, portable rubric | This repo (Cursor plugin + Agent Plugins 1.0 `skills/`) |
+| Skills, agents, runbook, portable rubric | This repo (Cursor plugin + [Agent Plugins 1.0](https://agent-plugins.org/specification) `skills/`) |
 | Executable scripts (freshness poll, guardrails) | This repo (npm/git devDependency) |
 | Policy facts, Renovate bot config, CI workflow | Your repo |
 
