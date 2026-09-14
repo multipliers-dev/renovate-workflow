@@ -2,13 +2,13 @@
 
 Manual checks for **renovate-maintainer** auto path and **`--approved`** investigation-approved path.
 
-Automated authority derivation: [`scripts/renovate-guardrails.test.ts`](../../../scripts/renovate-guardrails.test.ts) (`evaluateEffectiveExecutionAuthority`).
+Automated authority derivation: [`scripts/renovate-guardrails.test.ts`](../../scripts/renovate-guardrails.test.ts) (`evaluateEffectiveExecutionAuthority`).
 
 ## Prerequisites
 
 - GitHub MCP or authenticated `gh` with merge access
-- Policy v2 with `execution_modes.investigation_approved` in [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml)
-- Classifier packet fixture: [`scripts/fixtures/renovate-packets/high-touch-patch-investigate.yaml`](../../../scripts/fixtures/renovate-packets/high-touch-patch-investigate.yaml)
+- Policy v2 with `execution_modes.investigation_approved` in [`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml)
+- Classifier packet fixture: [`scripts/fixtures/renovate-packets/high-touch-patch-investigate.yaml`](../../scripts/fixtures/renovate-packets/high-touch-patch-investigate.yaml)
 
 ## 1. Auto path — denied packet stops
 

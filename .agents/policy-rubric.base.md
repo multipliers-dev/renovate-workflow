@@ -2,7 +2,7 @@
 
 Interpret **consumer** `.agents/renovate-policy.yml`. This file stores **portable logic only** — no repository-specific package lists, sensitive paths, or CI bindings.
 
-Classifier entrypoint: [policy-rubric.md](../.cursor/skills/renovate-classifier/policy-rubric.md) (requires loading consumer YAML first).
+Classifier entrypoint: [policy-rubric.md](../skills/renovate-classifier/policy-rubric.md) (requires loading consumer YAML first).
 
 ## Sync model
 
@@ -175,12 +175,12 @@ Merge-blocking check from `checks.pr_ci_green` (`workflow`, `job`). Treat check 
 | `renovate.json` changed | `human_required` | `denied` | `renovate_config_change` |
 | Defer triggers | `defer` | `denied` | (highest applicable) |
 
-`risk_class` enum must match consumer policy `risk_classes` and [packet-schema.md](../.cursor/skills/renovate-classifier/packet-schema.md).
+`risk_class` enum must match consumer policy `risk_classes` and [packet-schema.md](../skills/renovate-classifier/packet-schema.md).
 
 ## Stop causes and required checks
 
 - Derive `stop_causes` with [`derive-stop-causes.ts`](../scripts/lib/derive-stop-causes.ts)
-- Assemble `required_checks` per [packet-schema.md](../.cursor/skills/renovate-classifier/packet-schema.md) from `check_assembly` + `checks.*`
+- Assemble `required_checks` per [packet-schema.md](../skills/renovate-classifier/packet-schema.md) from `check_assembly` + `checks.*`
 - Set `policy_version` from consumer policy `version`
 
 ## Investigation lane

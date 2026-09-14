@@ -46,8 +46,8 @@ Analysis and verdict in chat only. Do **not** write a report file. Do **not** em
 
 Operator/CI verification for the vitest #402 packet **shape** without depending on live PR #402 state.
 
-1. Packet: [`scripts/fixtures/renovate-packets/high-touch-patch-investigate.yaml`](../../../scripts/fixtures/renovate-packets/high-touch-patch-investigate.yaml)
-2. Mocked live evidence: [`scripts/fixtures/renovate-packets/high-touch-patch-investigate-live.yaml`](../../../scripts/fixtures/renovate-packets/high-touch-patch-investigate-live.yaml)
+1. Packet: [`scripts/fixtures/renovate-packets/high-touch-patch-investigate.yaml`](../../scripts/fixtures/renovate-packets/high-touch-patch-investigate.yaml)
+2. Mocked live evidence: [`scripts/fixtures/renovate-packets/high-touch-patch-investigate-live.yaml`](../../scripts/fixtures/renovate-packets/high-touch-patch-investigate-live.yaml)
 3. **Do not** call GitHub for stale-packet binding — treat mocked live `pr.head_sha` as authoritative and require it to equal `packet.pr.head_sha`
 4. Four-step investigation uses packet `evidence` plus repo-local grep/config analysis (no live PR body fetch required for pass/fail of the verification contract)
 5. Write gitignored report; when verdict is `ready_for_human_merge`, emit **`verification_only: true`** with nested **`expected_overlay`** in chat — **not** a production-executable overlay
@@ -77,7 +77,7 @@ Operator/CI verification for the vitest #402 packet **shape** without depending 
 
 **Evidence gate:**
 
-- Eligibility check via [`evaluateInvestigationEligibility`](../../../scripts/lib/renovate-investigation-eligibility.ts) before expensive analysis
+- Eligibility check via [`evaluateInvestigationEligibility`](../../scripts/lib/renovate-investigation-eligibility.ts) before expensive analysis
 - Normal: live `head_sha` and `policy_version` match packet at report write time for `ready_for_human_merge`
 - Fixture verification: mocked live evidence `pr.head_sha` and `policy_version` match packet
 
@@ -107,7 +107,7 @@ For one investigation-eligible classifier packet:
 1. Validate eligibility and packet freshness
 2. Run the [four-step checklist](investigation-checklist.md)
 3. Assign verdict per [investigation-rubric.md](investigation-rubric.md)
-4. Write investigation report from [`.agents/templates/renovate-investigation-report.md`](../../../.agents/templates/renovate-investigation-report.md)
+4. Write investigation report from [`.agents/templates/renovate-investigation-report.md`](../../.agents/templates/renovate-investigation-report.md)
 5. Emit handoff artifact in chat when verdict is `ready_for_human_merge` — executable overlay in **normal**; `verification_only` + `expected_overlay` in **fixture verification**
 
 Re-run `/renovate-classifier` if the packet is stale. Human reviews the report, then invokes `/renovate-maintainer --approved` with packet + overlay (see [renovate-maintainer SKILL.md](../renovate-maintainer/SKILL.md)).
@@ -126,7 +126,7 @@ Re-run `/renovate-classifier` if the packet is stale. Human reviews the report, 
 1. **Normal / `chat only`:** confirm GitHub MCP or authenticated `gh` is available (read-only is sufficient). If both are unavailable, **hard stop** — no report in normal; availability error in chat only (no investigation verdict).
 2. **`fixture verification`:** GitHub is optional — mocked live evidence substitutes PR re-fetch for freshness binding.
 3. **Forbidden write tools:** `merge_pull_request`, `pull_request_review_write`, `update_pull_request`, `gh pr merge`, `gh pr review`, `gh pr close`, `gh pr update-branch`.
-4. Read [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml) and [investigation-rubric.md](investigation-rubric.md).
+4. Read [`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml) and [investigation-rubric.md](investigation-rubric.md).
 
 ### 1. Validate packet and eligibility
 
@@ -135,7 +135,7 @@ Re-run `/renovate-classifier` if the packet is stale. Human reviews the report, 
 3. **Eligibility** — run `evaluateInvestigationEligibility(packet, policy)` (or equivalent reasoning per rubric). `eligible: false` → verdict `not_eligible`; **halt investigation** (skip steps 2–3 and overlay in step 5).
 4. **Freshness binding:**
    - **Normal:** re-fetch live PR via GitHub MCP or `gh pr view --json headRefOid,mergeStateStatus,title,url`. Compare live `head.sha` to `packet.pr.head_sha`. Mismatch → verdict `stale_packet`; **halt investigation** (skip steps 2–3 and overlay in step 5).
-   - **`fixture verification`:** load [`high-touch-patch-investigate-live.yaml`](../../../scripts/fixtures/renovate-packets/high-touch-patch-investigate-live.yaml) (or equivalent mocked live evidence supplied in prompt). Compare mocked `pr.head_sha` to `packet.pr.head_sha`. Mismatch → verdict `stale_packet`; **halt investigation** (skip steps 2–3 and overlay in step 5). **Do not** re-fetch live PR #402.
+   - **`fixture verification`:** load [`high-touch-patch-investigate-live.yaml`](../../scripts/fixtures/renovate-packets/high-touch-patch-investigate-live.yaml) (or equivalent mocked live evidence supplied in prompt). Compare mocked `pr.head_sha` to `packet.pr.head_sha`. Mismatch → verdict `stale_packet`; **halt investigation** (skip steps 2–3 and overlay in step 5). **Do not** re-fetch live PR #402.
    - **`chat only`:** same binding rules as normal when a live packet is used; skip report write and executable overlay regardless of verdict.
 
 **Early gate failures** (`not_eligible`, `stale_packet`):
@@ -184,7 +184,7 @@ Re-check freshness binding immediately before finalizing verdict (live re-fetch 
 Write a report in **normal** and **`fixture verification`** modes only:
 
 - Path: `.agent-runs/renovate/{YYYY-MM-DD}-pr-{N}-investigation.md`
-- Template: [`.agents/templates/renovate-investigation-report.md`](../../../.agents/templates/renovate-investigation-report.md)
+- Template: [`.agents/templates/renovate-investigation-report.md`](../../.agents/templates/renovate-investigation-report.md)
 - Create `.agent-runs/renovate/` on first write
 - **`fixture verification`:** include `fixture verification — not a live PR run` in the report header
 - **Gate failures** (`not_eligible`, `stale_packet`): minimal report is sufficient — verdict, reason, and next action (re-run `/renovate-classifier` when stale); four-step sections may be omitted or marked N/A
@@ -262,7 +262,7 @@ For other verdicts, state next action (manual migration, re-classify, additional
 
 - Four-step model: [investigation-checklist.md](investigation-checklist.md)
 - Classifier packet: [packet-schema.md](../renovate-classifier/packet-schema.md)
-- Eligibility helper: [`scripts/lib/renovate-investigation-eligibility.ts`](../../../scripts/lib/renovate-investigation-eligibility.ts)
-- Policy: consumer `.agents/renovate-policy.yml` (template: [`.agents/renovate-policy.template.yml`](../../../.agents/renovate-policy.template.yml))
-- Agent: [`.agents/renovate-investigator.md`](../../../.agents/renovate-investigator.md)
-- Report template: [`.agents/templates/renovate-investigation-report.md`](../../../.agents/templates/renovate-investigation-report.md)
+- Eligibility helper: [`scripts/lib/renovate-investigation-eligibility.ts`](../../scripts/lib/renovate-investigation-eligibility.ts)
+- Policy: consumer `.agents/renovate-policy.yml` (template: [`.agents/renovate-policy.template.yml`](../../.agents/renovate-policy.template.yml))
+- Agent: [`.agents/renovate-investigator.md`](../../.agents/renovate-investigator.md)
+- Report template: [`.agents/templates/renovate-investigation-report.md`](../../.agents/templates/renovate-investigation-report.md)

@@ -23,7 +23,7 @@ import { deriveStopCauses } from "./lib/derive-stop-causes.js";
 
 const REPO_ROOT = resolve(process.cwd());
 const POLICY_PATH = join(REPO_ROOT, "examples/example-repo/renovate-policy.yml");
-const SCHEMA_PATH = join(REPO_ROOT, ".cursor/skills/renovate-classifier/packet-schema.md");
+const SCHEMA_PATH = join(REPO_ROOT, "skills/renovate-classifier/packet-schema.md");
 const FIXTURES_DIR = join(REPO_ROOT, "scripts/fixtures/renovate-packets");
 
 function loadFixturePacket(name: string): RenovatePacket {

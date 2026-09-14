@@ -1,6 +1,6 @@
 # Renovate maintainer agent
 
-Executor prompt for Renovate dependency PRs. Consumes an execution packet from [renovate-classifier](../.cursor/skills/renovate-classifier/SKILL.md) (classifier) and may merge when policy and checks allow.
+Executor prompt for Renovate dependency PRs. Consumes an execution packet from [renovate-classifier](../skills/renovate-classifier/SKILL.md) (classifier) and may merge when policy and checks allow.
 
 **Policy sync note:** When [policy-rubric.base.md](policy-rubric.base.md) or consumer `renovate.json` changes, update consumer `.agents/renovate-policy.yml` in the same PR.
 
@@ -23,8 +23,8 @@ No hooks or automation — invoke only when you intend the agent to act on a spe
 ## Input
 
 - Renovate PR number (or URL)
-- Execution packet YAML from renovate-classifier (per [packet-schema.md](../.cursor/skills/renovate-classifier/packet-schema.md))
-- Optional: **execution overlay** YAML (required when invoked with `--approved`; see [Execution overlay](../.cursor/skills/renovate-classifier/packet-schema.md#execution-overlay-investigation-approved))
+- Execution packet YAML from renovate-classifier (per [packet-schema.md](../skills/renovate-classifier/packet-schema.md))
+- Optional: **execution overlay** YAML (required when invoked with `--approved`; see [Execution overlay](../skills/renovate-classifier/packet-schema.md#execution-overlay-investigation-approved))
 
 ---
 
@@ -51,7 +51,7 @@ Before any action:
 
 1. **GitHub MCP or authenticated `gh`** available — read + **write** merge tools allowed here (MCP `merge_pull_request` or `gh pr merge`), unlike the classifier skill.
 2. Read [renovate-policy.yml](renovate-policy.yml) before acting.
-3. Read [packet-schema.md](../.cursor/skills/renovate-classifier/packet-schema.md) for field semantics.
+3. Read [packet-schema.md](../skills/renovate-classifier/packet-schema.md) for field semantics.
 4. **Policy version check (hard gate)** — `packet.policy_version` must equal `version` in [renovate-policy.yml](renovate-policy.yml). If missing or mismatch → **stop immediately**; do not merge. Ask the user to re-run `/renovate-classifier` so classification runs under current policy.
 5. **Base branch freshness (hard gate)** — re-fetch live `mergeStateStatus` via GitHub MCP **or** `gh pr view <N> --json mergeStateStatus`. If `mergeStateStatus == BEHIND` → **stop immediately**; do not merge. A sibling Renovate PR may have merged after classification and moved `main`. Ask the user to re-run `/renovate-classifier` (classifier runs `gh pr update-branch` when appropriate) or update the branch manually, then re-classify.
 
@@ -256,7 +256,7 @@ Write run report to .agent-runs/renovate/{date}-pr-{N}.md using .agents/template
 
 ### Investigation-approved path (`--approved`)
 
-After human audits the investigation report from [renovate-investigator](../.cursor/skills/renovate-investigator/SKILL.md):
+After human audits the investigation report from [renovate-investigator](../skills/renovate-investigator/SKILL.md):
 
 ```
 @.agents/renovate-maintainer.md
@@ -284,10 +284,10 @@ Write run report to .agent-runs/renovate/{date}-pr-{N}.md using .agents/template
 
 ## References
 
-- Skill: [renovate-maintainer SKILL.md](../.cursor/skills/renovate-maintainer/SKILL.md)
-- Classifier: [renovate-classifier SKILL.md](../.cursor/skills/renovate-classifier/SKILL.md)
-- Investigator: [renovate-investigator SKILL.md](../.cursor/skills/renovate-investigator/SKILL.md)
-- Packet schema: [packet-schema.md](../.cursor/skills/renovate-classifier/packet-schema.md)
+- Skill: [renovate-maintainer SKILL.md](../skills/renovate-maintainer/SKILL.md)
+- Classifier: [renovate-classifier SKILL.md](../skills/renovate-classifier/SKILL.md)
+- Investigator: [renovate-investigator SKILL.md](../skills/renovate-investigator/SKILL.md)
+- Packet schema: [packet-schema.md](../skills/renovate-classifier/packet-schema.md)
 - Policy: consumer `.agents/renovate-policy.yml` (template: [renovate-policy.template.yml](renovate-policy.template.yml))
 - Guardrails: [scripts/lib/renovate-guardrails.ts](../scripts/lib/renovate-guardrails.ts)
 - Run report template: [templates/renovate-run-report.md](templates/renovate-run-report.md)

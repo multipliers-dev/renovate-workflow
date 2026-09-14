@@ -4,7 +4,7 @@ Classification rules for **renovate-investigator** verdicts. Apply after the [fo
 
 ## Eligibility gate (before investigation)
 
-Run [`evaluateInvestigationEligibility`](../../../scripts/lib/renovate-investigation-eligibility.ts) against the classifier packet and live [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml).
+Run [`evaluateInvestigationEligibility`](../../scripts/lib/renovate-investigation-eligibility.ts) against the classifier packet and live [`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml).
 
 | Result            | Behavior                                                                                                                                                                                     |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

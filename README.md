@@ -16,9 +16,11 @@ classify (/renovate-classifier)
 
 | Layer | Where it lives |
 | --- | --- |
-| Skills, agents, runbook, portable rubric | This repo (Cursor plugin) |
+| Skills, agents, runbook, portable rubric | This repo (Cursor plugin + Agent Plugins 1.0 `skills/`) |
 | Executable scripts (freshness poll, guardrails) | This repo (npm/git devDependency) |
 | Policy facts, Renovate bot config, CI workflow | Your repo |
+
+Portable vs Cursor manifest layers: [docs/adopt.md#portable-vs-cursor-layers-this-repo](docs/adopt.md#portable-vs-cursor-layers-this-repo).
 
 ---
 
@@ -121,9 +123,11 @@ npm run typecheck
 ## Layout
 
 ```
-.cursor-plugin/        Marketplace + plugin manifests
-.cursor/skills/        Five renovate skills + verification assets
+plugin.json            Agent Plugins 1.0 portable manifest (metadata only)
+skills/                Five renovate skills + verification assets (fixed discovery path)
+.cursor-plugin/        Cursor marketplace + extension manifest (agents, skill paths)
 .agents/               Agent prompts, rubric base, policy template, report templates
+.cursor/               Repo-local Cursor dev (hooks, Cloud VM) — not plugin-distributed
 docs/                  Adoption guides and runbook
 scripts/               Guardrails, freshness poll, tests/fixtures
 examples/example-repo/ Synthetic consumer stubs for policy schema tests

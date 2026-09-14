@@ -40,9 +40,9 @@ flowchart LR
   maintainerApproved --> classify
 ```
 
-**Classifier** ([`renovate-classifier`](../.cursor/skills/renovate-classifier/SKILL.md)) discovers open Renovate PRs, builds an **active** (non-draft) queue, and analyzes **one** PR per run (FIFO lowest active number, or explicit PR number in the active set). Draft Renovate PRs are reported in discovery reconciliation but are not selectable. Before expensive analysis it checks base-branch freshness and runs `gh pr update-branch` when the PR is `BEHIND`. It emits one recommendation plus one YAML **execution packet** with structured `stop_causes` when `stop: true`. It never merges, approves, comments, or closes PRs (except the bounded `gh pr update-branch` write when `BEHIND`).
+**Classifier** ([`renovate-classifier`](../skills/renovate-classifier/SKILL.md)) discovers open Renovate PRs, builds an **active** (non-draft) queue, and analyzes **one** PR per run (FIFO lowest active number, or explicit PR number in the active set). Draft Renovate PRs are reported in discovery reconciliation but are not selectable. Before expensive analysis it checks base-branch freshness and runs `gh pr update-branch` when the PR is `BEHIND`. It emits one recommendation plus one YAML **execution packet** with structured `stop_causes` when `stop: true`. It never merges, approves, comments, or closes PRs (except the bounded `gh pr update-branch` write when `BEHIND`).
 
-**Investigator** ([`renovate-investigator`](../.cursor/skills/renovate-investigator/SKILL.md) / [`.agents/renovate-investigator.md`](../.agents/renovate-investigator.md)) gathers four-step evidence for investigation-eligible packets (`high_touch_tooling` or `unlisted_package`, `stop: true`, overridable `stop_causes` only). It writes a gitignored investigation report and may emit a declarative execution overlay when verdict is `ready_for_human_merge`. Investigation-approved execution remains restricted to dependency-only `allowed_paths`. It has **no merge authority** and never passes `--approved`.
+**Investigator** ([`renovate-investigator`](../skills/renovate-investigator/SKILL.md) / [`.agents/renovate-investigator.md`](../.agents/renovate-investigator.md)) gathers four-step evidence for investigation-eligible packets (`high_touch_tooling` or `unlisted_package`, `stop: true`, overridable `stop_causes` only). It writes a gitignored investigation report and may emit a declarative execution overlay when verdict is `ready_for_human_merge`. Investigation-approved execution remains restricted to dependency-only `allowed_paths`. It has **no merge authority** and never passes `--approved`.
 
 **Maintainer agent** ([`.agents/renovate-maintainer.md`](../.agents/renovate-maintainer.md)) consumes one packet on the **auto path** (`stop: false`) and may merge when policy and CI allow. On the **investigation-approved path**, invoke with **`--approved`** plus the investigator overlay after human audit — packet `merge_authority: denied` stays immutable; effective authority is derived at execute time.
 
@@ -73,7 +73,7 @@ Use draft state to park a Renovate PR that should not enter the ladder yet (for 
 
 - **Park** — Convert the PR to draft, document why it is parked, and record the unblock criteria (reason and unblock condition may differ). Prefer draft over closing when the intent is “resume later,” because closing may suppress future Renovate attempts depending on repository configuration.
 - **Loop / classifier** — Drafts are reported in discovery reconciliation but are not selectable. `/renovate-loop` and FIFO skip them until **Ready for review**. Drafts-only ⇒ `queue_empty` (active queue clear), not “no migration work left.” Draft FIFO for readiness triage lives in `/renovate-draft-readiness` (below); the active classify/loop queue is unchanged.
-- **Draft readiness** — Run `/renovate-draft-readiness` (or `/renovate-draft-readiness <PR>` for an explicit draft) to assess one parked draft Renovate PR and **always refresh** its managed GitHub readiness comment (`<!-- renovate-draft-readiness -->`). Orthogonal to the merge ladder: it does **not** unpark, merge, approve, close, or update/rebase the branch, and it does **not** emit classifier packets or feed maintainer/investigator. There is no dry-run mode — comment publication is the skill. Skill: [`renovate-draft-readiness`](../.cursor/skills/renovate-draft-readiness/SKILL.md).
+- **Draft readiness** — Run `/renovate-draft-readiness` (or `/renovate-draft-readiness <PR>` for an explicit draft) to assess one parked draft Renovate PR and **always refresh** its managed GitHub readiness comment (`<!-- renovate-draft-readiness -->`). Orthogonal to the merge ladder: it does **not** unpark, merge, approve, close, or update/rebase the branch, and it does **not** emit classifier packets or feed maintainer/investigator. There is no dry-run mode — comment publication is the skill. Skill: [`renovate-draft-readiness`](../skills/renovate-draft-readiness/SKILL.md).
 - **Unpark** — Mark **Ready for review** (human). The PR immediately re-enters the active queue. It can then be processed normally via `/renovate-loop` (FIFO) or selected explicitly with `/renovate-classifier <PR>`. Expect the normal route for that PR’s risk class (often investigation / hard stop for high-touch majors) — not the auto-merge path by default. Eligibility is controlled by draft state, not operator memory. A `ready_to_unpark` verdict from draft-readiness is a recommendation only.
 - Do **not** ask the ladder to analyze or merge while the PR is draft.
 
@@ -143,7 +143,7 @@ The investigator writes a gitignored report. When verdict is `ready_for_human_me
 
 ### 4. Human gate — investigation-approved merge
 
-**Manual only** — audit the investigation report. When satisfied, open a **fresh Agent-mode chat** with `/renovate-maintainer --approved`, the **same classifier packet**, and the **investigator overlay** (see [renovate-maintainer SKILL.md](../.cursor/skills/renovate-maintainer/SKILL.md)). The loop and investigator **never** pass `--approved`.
+**Manual only** — audit the investigation report. When satisfied, open a **fresh Agent-mode chat** with `/renovate-maintainer --approved`, the **same classifier packet**, and the **investigator overlay** (see [renovate-maintainer SKILL.md](../skills/renovate-maintainer/SKILL.md)). The loop and investigator **never** pass `--approved`.
 
 ### 5. Review the outcome
 
@@ -161,7 +161,7 @@ Re-run `/renovate-classifier` to classify the next FIFO Renovate PR (no argument
 
 ## Automated ladder (optional)
 
-To run classify → route → execute without copy/paste between steps, use **`/renovate-loop`** ([`renovate-loop` skill](../.cursor/skills/renovate-loop/SKILL.md)).
+To run classify → route → execute without copy/paste between steps, use **`/renovate-loop`** ([`renovate-loop` skill](../skills/renovate-loop/SKILL.md)).
 
 The orchestrator:
 
@@ -180,7 +180,7 @@ Supported invocations:
 
 `--babysit` is supported only with the normal loop invocation. It does not expand merge authority; after a successful `gh pr update-branch`, the classifier invokes `scripts/renovate-freshness-poll.ts` to wait for a terminal result. Only `outcome: "clean"` can produce a packet, and the packet must use the helper's returned `headSha`. `--babysit` does **not** wait on pre-update §2.6 `UNKNOWN` — only post-update settling per classifier §2.7.
 
-Manual verification checklist: [`.cursor/skills/renovate-loop/verification.md`](../.cursor/skills/renovate-loop/verification.md). Loop summaries: `.agent-runs/renovate/loop-{YYYY-MM-DD}.md` (gitignored).
+Manual verification checklist: [`skills/renovate-loop/verification.md`](../skills/renovate-loop/verification.md). Loop summaries: `.agent-runs/renovate/loop-{YYYY-MM-DD}.md` (gitignored).
 
 This is **not** scheduled automation (cron, webhooks) — invoke only when you intend to process the Renovate queue in one session.
 
@@ -227,7 +227,7 @@ If the maintainer stops for ambiguity, default to **manual review** on GitHub.
 
 ## What can be merged automatically (summary)
 
-Full rules live in consumer [`.agents/renovate-policy.yml`](../.agents/renovate-policy.template.yml) (facts) and portable interpretation [`.agents/policy-rubric.base.md`](../.agents/policy-rubric.base.md). Classifier entrypoint: [`policy-rubric.md`](../.cursor/skills/renovate-classifier/policy-rubric.md).
+Full rules live in consumer [`.agents/renovate-policy.yml`](../.agents/renovate-policy.template.yml) (facts) and portable interpretation [`.agents/policy-rubric.base.md`](../.agents/policy-rubric.base.md). Classifier entrypoint: [`policy-rubric.md`](../skills/renovate-classifier/policy-rubric.md).
 
 | Category               | Examples                                                                                                                                                      |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -257,14 +257,14 @@ Legacy paths from before this rename live in archived plans and git history only
 
 | Topic                                     | Location                                                                                                                                          |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Classifier skill                          | [`.cursor/skills/renovate-classifier/SKILL.md`](../.cursor/skills/renovate-classifier/SKILL.md)                                                   |
-| Draft readiness (parked drafts)           | [`.cursor/skills/renovate-draft-readiness/SKILL.md`](../.cursor/skills/renovate-draft-readiness/SKILL.md)                                         |
-| Investigator skill                        | [`.cursor/skills/renovate-investigator/SKILL.md`](../.cursor/skills/renovate-investigator/SKILL.md)                                               |
-| Loop orchestrator (optional)              | [`.cursor/skills/renovate-loop/SKILL.md`](../.cursor/skills/renovate-loop/SKILL.md)                                                               |
+| Classifier skill                          | [`skills/renovate-classifier/SKILL.md`](../skills/renovate-classifier/SKILL.md)                                                   |
+| Draft readiness (parked drafts)           | [`skills/renovate-draft-readiness/SKILL.md`](../skills/renovate-draft-readiness/SKILL.md)                                         |
+| Investigator skill                        | [`skills/renovate-investigator/SKILL.md`](../skills/renovate-investigator/SKILL.md)                                               |
+| Loop orchestrator (optional)              | [`skills/renovate-loop/SKILL.md`](../skills/renovate-loop/SKILL.md)                                                               |
 | Maintainer agent (gates, stop conditions) | [`.agents/renovate-maintainer.md`](../.agents/renovate-maintainer.md)                                                                             |
 | Merge authority matrix                    | Consumer `.agents/renovate-policy.yml` (template: [`.agents/renovate-policy.template.yml`](../.agents/renovate-policy.template.yml)) |
 | Portable rubric                           | [`.agents/policy-rubric.base.md`](../.agents/policy-rubric.base.md)                                                                   |
-| Packet schema                             | [`.cursor/skills/renovate-classifier/packet-schema.md`](../.cursor/skills/renovate-classifier/packet-schema.md)                     |
+| Packet schema                             | [`skills/renovate-classifier/packet-schema.md`](../skills/renovate-classifier/packet-schema.md)                     |
 | Cloud agent summary                       | [`AGENTS.md`](../AGENTS.md)                                                                                                           |
 | Policy sync model                         | [`docs/policy-setup.md`](policy-setup.md)                                                                                             |
 | Synthetic policy example                  | [`examples/example-repo/renovate-policy.yml`](../examples/example-repo/renovate-policy.yml)                                           |

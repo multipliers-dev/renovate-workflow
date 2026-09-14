@@ -39,7 +39,7 @@ Store **facts needed to derive classifications**, not duplicated derived labels:
 
 ### What does NOT get a third file
 
-Do not embed package lists or CI bindings in `.cursor/skills/renovate-classifier/policy-rubric.md` — that file is a thin entrypoint only. Classifier loads consumer YAML, then applies [policy-rubric.base.md](../.agents/policy-rubric.base.md). Deterministic lookup: [`scripts/lib/renovate-policy-facts.ts`](../scripts/lib/renovate-policy-facts.ts).
+Do not embed package lists or CI bindings in `skills/renovate-classifier/policy-rubric.md` — that file is a thin entrypoint only. Classifier loads consumer YAML, then applies [policy-rubric.base.md](../.agents/policy-rubric.base.md). Deterministic lookup: [`scripts/lib/renovate-policy-facts.ts`](../scripts/lib/renovate-policy-facts.ts).
 
 ## Bootstrap a consumer
 
@@ -64,4 +64,4 @@ Example stubs keep GitHub Actions grouped with `pinDigests: true` only; npm pack
 ## Verification
 
 - `npm test` — guardrail fixtures + `renovate-policy-facts` (consumer YAML drives classification)
-- Skill verification checklists under `.cursor/skills/renovate-*/verification.md`
+- Skill verification checklists under `skills/renovate-*/verification.md`

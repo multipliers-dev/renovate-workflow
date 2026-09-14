@@ -10,9 +10,9 @@ disable-model-invocation: true
 
 # Renovate maintainer
 
-Executor for Renovate dependency PRs. Consumes one classifier execution packet, re-verifies live evidence against [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml), and may merge when all gates pass.
+Executor for Renovate dependency PRs. Consumes one classifier execution packet, re-verifies live evidence against [`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml), and may merge when all gates pass.
 
-**Agent doc:** [`.agents/renovate-maintainer.md`](../../../.agents/renovate-maintainer.md) — follow it for ordered responsibilities, stop conditions, and run report.
+**Agent doc:** [`.agents/renovate-maintainer.md`](../../.agents/renovate-maintainer.md) — follow it for ordered responsibilities, stop conditions, and run report.
 
 Unlike [renovate-classifier](../renovate-classifier/SKILL.md), this skill **may** call merge tools when explicitly invoked and all gates pass.
 
@@ -90,7 +90,7 @@ For one classifier packet:
 
 ## Authority derivation
 
-Use [`evaluateEffectiveExecutionAuthority`](../../../scripts/lib/renovate-guardrails.ts) as the sole authority derivation for the investigation-approved path:
+Use [`evaluateEffectiveExecutionAuthority`](../../scripts/lib/renovate-guardrails.ts) as the sole authority derivation for the investigation-approved path:
 
 ```typescript
 evaluateEffectiveExecutionAuthority(packet, policy, {
@@ -114,7 +114,7 @@ Record in run report:
 
 ## Steps (summary)
 
-Follow [`.agents/renovate-maintainer.md`](../../../.agents/renovate-maintainer.md) in order. Key investigation-approved differences:
+Follow [`.agents/renovate-maintainer.md`](../../.agents/renovate-maintainer.md) in order. Key investigation-approved differences:
 
 ### Pairing gate (before authority derivation)
 
@@ -190,7 +190,7 @@ Write run report to .agent-runs/renovate/{date}-pr-{N}.md using .agents/template
 
 ## References
 
-- Agent: [`.agents/renovate-maintainer.md`](../../../.agents/renovate-maintainer.md)
+- Agent: [`.agents/renovate-maintainer.md`](../../.agents/renovate-maintainer.md)
 - Packet schema: [packet-schema.md](../renovate-classifier/packet-schema.md)
-- Policy: consumer `.agents/renovate-policy.yml` (template: [`.agents/renovate-policy.template.yml`](../../../.agents/renovate-policy.template.yml))
-- Run report: [`.agents/templates/renovate-run-report.md`](../../../.agents/templates/renovate-run-report.md)
+- Policy: consumer `.agents/renovate-policy.yml` (template: [`.agents/renovate-policy.template.yml`](../../.agents/renovate-policy.template.yml))
+- Run report: [`.agents/templates/renovate-run-report.md`](../../.agents/templates/renovate-run-report.md)

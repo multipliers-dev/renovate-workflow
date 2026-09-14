@@ -6,7 +6,7 @@ Manual checks for **renovate-investigator**, plus script tests for investigation
 
 - Classifier execution packet for an investigation-eligible PR (or committed fixture packet)
 - `.agent-runs/renovate/` writable (gitignored)
-- Policy v2 with `execution_modes.investigation_approved` in [`.agents/renovate-policy.yml`](../../../.agents/renovate-policy.yml)
+- Policy v2 with `execution_modes.investigation_approved` in [`.agents/renovate-policy.yml`](../../.agents/renovate-policy.yml)
 - GitHub MCP or authenticated `gh` for **normal** and **`chat only`** runs only
 
 ## Invocation modes (verification)
@@ -52,7 +52,7 @@ Expected: `eligible: true`, `riskClass: high_touch_tooling`, three overridable `
 Invoke investigator:
 
 ```
-@.cursor/skills/renovate-investigator/SKILL.md
+@skills/renovate-investigator/SKILL.md
 
 fixture verification
 Investigate using scripts/fixtures/renovate-packets/high-touch-patch-investigate.yaml as the classifier packet (vitest #402 shape).
@@ -93,7 +93,7 @@ expected_overlay:
 Requires a **live classifier packet** from a recent `/renovate-classifier` run on an investigation-eligible open PR. Do **not** use `scripts/fixtures/renovate-packets/high-touch-patch-investigate.yaml` — its placeholder `cafebabe…` `head_sha` will fail live freshness binding and yield `stale_packet`. Offline packet-shape checks belong in [§2 fixture verification](#2-fixture-verification-vitest-402-shape).
 
 ```
-@.cursor/skills/renovate-investigator/SKILL.md
+@skills/renovate-investigator/SKILL.md
 
 chat only
 Investigate PR #{N} using the classifier packet below.
@@ -135,8 +135,8 @@ When a **normal** run's live PR `head_sha` differs from packet:
 
 ## 6. Template completeness
 
-- [ ] [`.agents/templates/renovate-investigation-report.md`](../../../.agents/templates/renovate-investigation-report.md) sections match skill output
-- [ ] Agent copy/paste prompt in [`.agents/renovate-investigator.md`](../../../.agents/renovate-investigator.md) references skill + template
+- [ ] [`.agents/templates/renovate-investigation-report.md`](../../.agents/templates/renovate-investigation-report.md) sections match skill output
+- [ ] Agent copy/paste prompt in [`.agents/renovate-investigator.md`](../../.agents/renovate-investigator.md) references skill + template
 
 ## Allowed gitignored outputs
 

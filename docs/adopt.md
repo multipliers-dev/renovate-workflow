@@ -12,7 +12,27 @@ Install the **Cursor plugin** from this repository for skills, agent docs, templ
 | Executable TypeScript (`scripts/lib/*`, freshness poll CLI) | **Same repo via npm/git** | `devDependencies` when using `--babysit` or the freshness poll CLI (see [Enable loop / babysit helpers](#enable-loop--babysit-helpers)) |
 | Policy facts, Renovate bot config, CI workflow | **Your repo** | One-time copy + customize |
 
-This repository is the **canonical implementation**, a **single-plugin marketplace** (`.cursor-plugin/marketplace.json`), and the **installable Cursor plugin** (`.cursor-plugin/plugin.json`). Skills and agents stay at `.cursor/skills` and `.agents` in this repo — there is no nested `plugins/` mirror tree.
+### Portable vs Cursor layers (this repo)
+
+| Layer | Paths | Role |
+| --- | --- | --- |
+| **Agent Plugins 1.0 (portable)** | Root [`plugin.json`](../plugin.json), [`skills/`](../skills/) | Cross-client manifest and fixed skill discovery location; no `skills` / `agents` keys on the portable manifest |
+| **Cursor extension** | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json), [`.cursor-plugin/plugin.json`](../.cursor-plugin/plugin.json), [`.agents/`](../.agents/) | Marketplace install, agent prompts, explicit `"skills": "./skills"` and `"agents": "./.agents"` |
+| **npm / git scripts** | [`scripts/`](../scripts/), [`package.json`](../package.json) `files` | Freshness poll CLI and guardrail helpers via devDependency — not plugin components |
+| **Repo dev only (not distributed)** | [`.cursor/hooks.json`](../.cursor/hooks.json), [`.cursor/environment.json`](../.cursor/environment.json) | This checkout's hook stack and Cloud VM lifecycle — not consumer plugin surface |
+| **Consumer-local** | `.agents/renovate-policy.yml`, `renovate.json`, `.github/workflows/renovate.yml` | Per-repo facts and bot config |
+
+This repository is the **canonical implementation**, a **single-plugin marketplace**, and the **installable Cursor plugin**. Skills live at `skills/` (Agent Plugins 1.0); agents and portable assets stay under `.agents/`. There is no nested `plugins/` mirror tree.
+
+### Upgrading from 0.1.0 → 0.2.0
+
+Version **0.2.0** moves skills from `.cursor/skills/` to `skills/` and adds a portable root `plugin.json`. Slash commands (`/renovate-classifier`, etc.) are unchanged.
+
+After pulling or reinstalling **0.2.0**:
+
+1. Re-import the marketplace or reinstall the **renovate-workflow** plugin from Customize → Plugins
+2. Run **Developer: Reload Window** if slash commands still resolve to stale paths
+3. Update any local deep links from `.cursor/skills/…` to `skills/…` (consumer repos should not vendor skills)
 
 ---
 
@@ -60,7 +80,7 @@ Confirm `/renovate-classifier` appears under Customize → Plugins.
 | Cursor **public** marketplace (`cursor.com/marketplace`) | No — optional submission later |
 | **Team marketplace** (Teams/Enterprise org catalog) | No — different product surface |
 
-**Marketplace resolution:** the plugin entry uses `"source": "."`, so Cursor resolves `.cursor-plugin/plugin.json` at the **repository root** and discovers components from paths declared there (`"skills": ".cursor/skills"`, `"agents": ".agents"`). No duplicate nested plugin directory is required.
+**Marketplace resolution:** the plugin entry uses `"source": "."`, so Cursor resolves `.cursor-plugin/plugin.json` at the **repository root** and discovers components from paths declared there (`"skills": "./skills"`, `"agents": "./.agents"`). Portable clients may also read root `plugin.json` and discover skills at the fixed `skills/` location. No duplicate nested plugin directory is required.
 
 **Local testing** (before publish): clone into Cursor's local plugin directory per [Cursor plugin docs](https://cursor.com/docs/plugins#test-plugins-locally):
 
@@ -76,7 +96,7 @@ Plugin components resolve from this repo's tree:
 | --- | --- |
 | Marketplace manifest | `.cursor-plugin/marketplace.json` |
 | Plugin manifest | `.cursor-plugin/plugin.json` |
-| Skills | `.cursor/skills/renovate-*` |
+| Skills | `skills/renovate-*` |
 | Agent prompts + templates | `.agents/` |
 | Runbook | `docs/renovate-workflow.md` |
 
@@ -163,7 +183,7 @@ Full walkthrough: [renovate-workflow.md](renovate-workflow.md) (also in the inst
 
 Do **not** vendor into the consumer repo:
 
-- `.cursor/skills/renovate-*`
+- `skills/renovate-*`
 - `.agents/renovate-maintainer.md`, `renovate-investigator.md`, `policy-rubric.base.md`
 - `docs/renovate-workflow.md`
 - `scripts/lib/*`, fixtures, or tests

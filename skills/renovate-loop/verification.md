@@ -7,14 +7,14 @@ See [verification.md](verification.md) in this skill directory for the full gate
 ## Prerequisites
 
 - GitHub MCP or authenticated `gh` (classifier + maintainer)
-- Classic `repo` PAT for Checks API (see [docs/renovate-workflow.md](../../../docs/renovate-workflow.md))
+- Classic `repo` PAT for Checks API (see [docs/renovate-workflow.md](../../docs/renovate-workflow.md))
 - Open Renovate PRs in the repo (for happy-path tests)
 - Local git remote points at the active repository
 
 ## Invocation
 
 ```
-@.cursor/skills/renovate-loop/SKILL.md
+@skills/renovate-loop/SKILL.md
 
 /renovate-loop dry-run
 ```
@@ -22,7 +22,7 @@ See [verification.md](verification.md) in this skill directory for the full gate
 For full loop (includes maintainer merges when eligible):
 
 ```
-@.cursor/skills/renovate-loop/SKILL.md
+@skills/renovate-loop/SKILL.md
 
 /renovate-loop
 ```
@@ -30,7 +30,7 @@ For full loop (includes maintainer merges when eligible):
 For full loop with bounded merge-state babysitting:
 
 ```
-@.cursor/skills/renovate-loop/SKILL.md
+@skills/renovate-loop/SKILL.md
 
 /renovate-loop --babysit
 ```

@@ -17,12 +17,12 @@ Thin **Tier 3 boundary** orchestrator: repeatedly process open Renovate PRs unti
 | Phase        | Owner                                                              | Responsibility                                                                                                                                            |
 | ------------ | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Classify     | [renovate-classifier](../renovate-classifier/SKILL.md)             | Queue discovery (active non-draft set), FIFO selection, freshness, packet                                                                                 |
-| Investigate  | [renovate-investigator](../../../.agents/renovate-investigator.md) | Evidence gathering for investigation-eligible high-touch and unlisted_package packets (overridable stops only; dependency-only paths gate approved merge) |
-| Execute auto | [renovate-maintainer](../../../.agents/renovate-maintainer.md)     | Re-verify, merge when policy + CI allow, run report                                                                                                       |
+| Investigate  | [renovate-investigator](../../.agents/renovate-investigator.md) | Evidence gathering for investigation-eligible high-touch and unlisted_package packets (overridable stops only; dependency-only paths gate approved merge) |
+| Execute auto | [renovate-maintainer](../../.agents/renovate-maintainer.md)     | Re-verify, merge when policy + CI allow, run report                                                                                                       |
 
 **Active queue / FIFO:** the classifier constructs an **active queue with drafts removed**, then selects the lowest PR from that queue. The loop must consume the classifier’s active queue as returned and must **not** independently filter, include, or reconsider draft PRs. Parked-draft readiness triage is orthogonal via [renovate-draft-readiness](../renovate-draft-readiness/SKILL.md) and must not be folded into loop iterations.
 
-**Investigation lane:** when a packet is `stop: true` but investigation-eligible per [`evaluateInvestigationEligibility`](../../../scripts/lib/renovate-investigation-eligibility.ts), delegate to renovate-investigator instead of stopping at `classifier_stop`. The loop **stops after investigation** — human reviews the report, then runs `/renovate-maintainer --approved` in a **fresh chat** (loop never passes `--approved`).
+**Investigation lane:** when a packet is `stop: true` but investigation-eligible per [`evaluateInvestigationEligibility`](../../scripts/lib/renovate-investigation-eligibility.ts), delegate to renovate-investigator instead of stopping at `classifier_stop`. The loop **stops after investigation** — human reviews the report, then runs `/renovate-maintainer --approved` in a **fresh chat** (loop never passes `--approved`).
 
 **Forbidden in this skill:**
 
@@ -35,7 +35,7 @@ Thin **Tier 3 boundary** orchestrator: repeatedly process open Renovate PRs unti
 - Skipping main sync because "we just merged"
 - Passing iteration N's packet into iteration N+1
 
-Manual ladder reference: [docs/renovate-workflow.md](../../../docs/renovate-workflow.md). Verification checklist: [verification.md](verification.md).
+Manual ladder reference: [docs/renovate-workflow.md](../../docs/renovate-workflow.md). Verification checklist: [verification.md](verification.md).
 
 ## Governance
 
@@ -123,8 +123,8 @@ Process open Renovate PRs in a loop:
    - **Investigation lane** (row F1) → note investigator would run; stop tag `investigation_complete`
    - **Hard stop** (rows A–E, B2, C, D, E, G, F2) → use the matching stop tag from step 3 (evaluate **G before F2** so `defer` packets get tag `defer`, not `classifier_stop`)
    - **Do not** invoke maintainer or investigator. Dry-run never starts iteration 2.
-5. If not `dry-run` and **maintainer auto path** (`stop: false`): invoke [renovate-maintainer](../../../.agents/renovate-maintainer.md) **exactly** with **this iteration's packet only** (follow agent doc; do not inline maintainer logic).
-6. If not `dry-run` and **investigation lane** (row F1): invoke [renovate-investigator](../../../.agents/renovate-investigator.md) **exactly** with **this iteration's packet only** (follow agent doc; do not inline investigator logic). **Stop the loop** after investigator completes — human gate is manual (`/renovate-maintainer --approved` in a fresh chat; loop never passes `--approved`).
+5. If not `dry-run` and **maintainer auto path** (`stop: false`): invoke [renovate-maintainer](../../.agents/renovate-maintainer.md) **exactly** with **this iteration's packet only** (follow agent doc; do not inline maintainer logic).
+6. If not `dry-run` and **investigation lane** (row F1): invoke [renovate-investigator](../../.agents/renovate-investigator.md) **exactly** with **this iteration's packet only** (follow agent doc; do not inline investigator logic). **Stop the loop** after investigator completes — human gate is manual (`/renovate-maintainer --approved` in a fresh chat; loop never passes `--approved`).
 7. If not `dry-run` and **hard stop** (rows A–E, B2, C, D, E, G, F2 from step 3; evaluate **G before F2**): **stop the loop** — log the matching stop tag; do not invoke maintainer or investigator; do not start the next iteration.
 8. **Continue rule (default loop only):** start the next iteration **only** when renovate-maintainer reports a successful **completed** merge outcome on the **auto path** (maintainer runs post-merge checks; orchestrator does not). Investigation-lane and hard-stop iterations never continue the loop. If maintainer reports `post_merge_ci_failed` or **any** stop, stop the loop.
 9. Discard the packet after each maintainer or investigator attempt (success or stop).
@@ -154,7 +154,7 @@ Evaluate in order after a packet is emitted:
 
 1. **Pre-packet / pre-delegation stops** — rows A, B, B2, C, D, E (no packet to route).
 2. **Row G (`defer`)** — `classification.decision === defer` → hard stop tag `defer`.
-3. **Investigation lane (F1)** — when `stop: true`, run [`evaluateInvestigationEligibility`](../../../scripts/lib/renovate-investigation-eligibility.ts) **mandatory** (no heuristics). `eligible: true` → route to renovate-investigator; loop stops after investigation (human gate).
+3. **Investigation lane (F1)** — when `stop: true`, run [`evaluateInvestigationEligibility`](../../scripts/lib/renovate-investigation-eligibility.ts) **mandatory** (no heuristics). `eligible: true` → route to renovate-investigator; loop stops after investigation (human gate).
 4. **Classifier hard stop (F2)** — when `stop: true` and step 3 returned `eligible: false` → hard stop tag `classifier_stop`. **Do not** classify F2 without running the helper in step 3.
 5. **Maintainer auto path** — `stop: false` (`auto_merge_eligible` or `agent_review_required`). Route to renovate-maintainer; loop may continue after successful merge.
 
@@ -162,13 +162,13 @@ Evaluate in order after a packet is emitted:
 
 ## Maintainer handoff (auto path)
 
-For each non–dry-run iteration on the **maintainer auto path**, follow the maintainer agent and its [copy/paste prompt](../../../.agents/renovate-maintainer.md#copypaste-prompt). Pass only the YAML packet from **this** classify run.
+For each non–dry-run iteration on the **maintainer auto path**, follow the maintainer agent and its [copy/paste prompt](../../.agents/renovate-maintainer.md#copypaste-prompt). Pass only the YAML packet from **this** classify run.
 
 The orchestrator **waits** for the maintainer's final report. It does **not** run post-merge CI itself.
 
 ## Investigator handoff (investigation lane)
 
-For each non–dry-run iteration on the **investigation lane** (row F1), follow the investigator agent and its [copy/paste prompt](../../../.agents/renovate-investigator.md#copypaste-prompt). Pass only the YAML packet from **this** classify run.
+For each non–dry-run iteration on the **investigation lane** (row F1), follow the investigator agent and its [copy/paste prompt](../../.agents/renovate-investigator.md#copypaste-prompt). Pass only the YAML packet from **this** classify run.
 
 The orchestrator **waits** for the investigator's final report. It does **not** invoke maintainer, pass `--approved`, or continue the loop. Tell the operator to audit the investigation report and, when ready, open a **fresh chat** with `/renovate-maintainer --approved` + packet + overlay (see [renovate-maintainer SKILL.md](../renovate-maintainer/SKILL.md)).
 
@@ -220,7 +220,7 @@ When the loop stops with tag `classifier_freshness_stop` and merge state was pre
 
 ### Stop after maintainer (merge not completed)
 
-Any maintainer hard stop from [renovate-maintainer.md § Stop conditions](../../../.agents/renovate-maintainer.md): `policy_version_drift`, `stale_packet`, `base_behind`, `triggered_human_required`, `watch_condition_confirmed`, `pre_merge_check_failed`, `merge_authority_denied`, `decision_stop`, `ambiguous_stop`, `merge_failed`, `post_merge_ci_failed`.
+Any maintainer hard stop from [renovate-maintainer.md § Stop conditions](../../.agents/renovate-maintainer.md): `policy_version_drift`, `stale_packet`, `base_behind`, `triggered_human_required`, `watch_condition_confirmed`, `pre_merge_check_failed`, `merge_authority_denied`, `decision_stop`, `ambiguous_stop`, `merge_failed`, `post_merge_ci_failed`.
 
 ### Continue loop (only case)
 
@@ -250,14 +250,14 @@ If maintainer stops with `stale_packet` or `base_behind`, stop the loop; operato
 | **renovate-investigator** | Gather evidence; write investigation report; emit overlay when ready    | Merge; approve; comment; pass `--approved`                             |
 | **renovate-maintainer**   | Re-verify packet; merge when gates pass; per-PR run report              | Select queue; classify without packet                                  |
 
-Merge authority stays with renovate-maintainer under existing [renovate-policy.yml](../../../.agents/renovate-policy.yml) gates — this orchestrator does **not** expand merge authority.
+Merge authority stays with renovate-maintainer under existing [renovate-policy.yml](../../.agents/renovate-policy.yml) gates — this orchestrator does **not** expand merge authority.
 
 ## References
 
 - Classifier: [renovate-classifier/SKILL.md](../renovate-classifier/SKILL.md)
-- Investigator: [renovate-investigator.md](../../../.agents/renovate-investigator.md)
-- Investigation eligibility: [renovate-investigation-eligibility.ts](../../../scripts/lib/renovate-investigation-eligibility.ts)
-- Maintainer: [renovate-maintainer.md](../../../.agents/renovate-maintainer.md)
+- Investigator: [renovate-investigator.md](../../.agents/renovate-investigator.md)
+- Investigation eligibility: [renovate-investigation-eligibility.ts](../../scripts/lib/renovate-investigation-eligibility.ts)
+- Maintainer: [renovate-maintainer.md](../../.agents/renovate-maintainer.md)
 - Packet schema: [packet-schema.md](../renovate-classifier/packet-schema.md)
-- Operator runbook: [docs/renovate-workflow.md](../../../docs/renovate-workflow.md)
-- Maintainer run report template: [renovate-run-report.md](../../../.agents/templates/renovate-run-report.md)
+- Operator runbook: [docs/renovate-workflow.md](../../docs/renovate-workflow.md)
+- Maintainer run report template: [renovate-run-report.md](../../.agents/templates/renovate-run-report.md)

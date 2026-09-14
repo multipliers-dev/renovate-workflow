@@ -18,7 +18,7 @@ Manual checks for **renovate-draft-readiness**. Comment upsert is required on ev
 ## Invocation
 
 ```
-@.cursor/skills/renovate-draft-readiness/SKILL.md
+@skills/renovate-draft-readiness/SKILL.md
 
 /renovate-draft-readiness 436
 ```
@@ -26,7 +26,7 @@ Manual checks for **renovate-draft-readiness**. Comment upsert is required on ev
 FIFO (no number) when the draft queue’s lowest number is the intended target:
 
 ```
-@.cursor/skills/renovate-draft-readiness/SKILL.md
+@skills/renovate-draft-readiness/SKILL.md
 
 /renovate-draft-readiness
 ```
@@ -69,7 +69,7 @@ Against live draft **#436** (or current FIFO draft):
 ## 5. Gitignored report
 
 - [ ] On gate pass: report written to `.agent-runs/renovate/{YYYY-MM-DD}-pr-{N}-draft-readiness.md`
-- [ ] Sections match [`.agents/templates/renovate-draft-readiness-report.md`](../../../.agents/templates/renovate-draft-readiness-report.md)
+- [ ] Sections match [`.agents/templates/renovate-draft-readiness-report.md`](../../.agents/templates/renovate-draft-readiness-report.md)
 - [ ] Bound `head_sha` in report matches live head at gate time
 - [ ] File is not staged or committed
 
@@ -90,7 +90,7 @@ Confirm the run did **not**:
 Confirm `/renovate-classifier` still skips drafts:
 
 ```
-@.cursor/skills/renovate-classifier/SKILL.md
+@skills/renovate-classifier/SKILL.md
 
 /renovate-classifier 436
 ```

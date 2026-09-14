@@ -138,7 +138,7 @@ repo:
   sensitive_paths:
     - scripts/**
     - .agents/**
-    - .cursor/skills/**
+    - skills/**
     - .github/workflows/**
     - renovate.json
   analytics_paths: []
