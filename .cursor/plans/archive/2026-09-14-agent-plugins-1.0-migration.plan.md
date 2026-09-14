@@ -7,9 +7,27 @@ todos:
     status: completed
   - id: plan-closure
     content: "Docs-only PR after agent-plugins-migration merges: add # Shipped note, move plan to .cursor/plans/archive/2026-09-14-agent-plugins-1.0-migration.plan.md"
-    status: pending
+    status: completed
 isProject: false
 ---
+
+# Shipped
+
+Agent Plugins 1.0 migration plan completed 2026-09-14.
+
+| Slice | Outcome |
+| --- | --- |
+| **Plan** | Staged plan merged as [multipliers-dev/renovate-workflow#25](https://github.com/multipliers-dev/renovate-workflow/pull/25). |
+| **agent-plugins-migration** | Root `plugin.json`, skills moved to `skills/`, `.cursor-plugin/plugin.json` updated, cross-refs, `validate-plugin-structure.test.ts`, docs, 0.2.0 bump. Merged as [multipliers-dev/renovate-workflow#26](https://github.com/multipliers-dev/renovate-workflow/pull/26). |
+| **plan-closure** | Docs-only archive (this PR). |
+
+**Deferred (out of scope for this plan):**
+
+- `mcp.json` — skills expect consumer-side GitHub MCP or `gh`.
+- Shipping `.cursor/hooks` to consumers — repo dev / Cloud VM only.
+- Ladder semantics changes.
+- Public Cursor Marketplace submission.
+- `editorial-workflow` Agent Plugins migration — reference pattern established here; separate plan later.
 
 # Agent Plugins 1.0 migration for renovate-workflow
 
@@ -213,7 +231,7 @@ Use a **fresh Agent-mode chat** per slice.
 ### agent-plugins-migration
 
 ```text
-@.cursor/plans/2026-09-14-agent-plugins-1.0-migration.plan.md
+@.cursor/plans/archive/2026-09-14-agent-plugins-1.0-migration.plan.md
 
 Implement slice agent-plugins-migration only. Do not start plan-closure. Do not archive the plan.
 
