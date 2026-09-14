@@ -3,16 +3,34 @@ name: Agent Plugins spec drift
 overview: Add advisory upstream Agent Plugins spec drift detection (weekly scheduled issue) while preserving existing offline blocking conformance checks in CI. Repo stays on Agent Plugins 1.0.0; no automatic migration.
 todos:
   - id: plan-review
-    content: "Plan-only PR: commit .cursor/plans/2026-09-14-agent-plugins-spec-drift.plan.md; stop after opening PR"
+    content: "Plan-only PR: commit .cursor/plans/archive/2026-09-14-agent-plugins-spec-drift.plan.md; stop after opening PR"
     status: completed
   - id: spec-drift-detection
     content: "PR: lib + drift CLI + offline tests + weekly advisory workflow + versioning docs (preserve blocking conformance)"
     status: completed
   - id: plan-closure
     content: "Docs-only PR after spec-drift-detection merges: # Shipped note, archive plan, mark plan-closure completed"
-    status: pending
+    status: completed
 isProject: false
 ---
+
+# Shipped
+
+Agent Plugins spec-drift detection plan completed 2026-09-14.
+
+| Slice | Outcome |
+| --- | --- |
+| **Plan** | Staged plan merged as [multipliers-dev/renovate-workflow#29](https://github.com/multipliers-dev/renovate-workflow/pull/29). |
+| **spec-drift-detection** | Shared lib, drift CLI, offline tests, weekly advisory workflow, versioning docs. Merged as [multipliers-dev/renovate-workflow#30](https://github.com/multipliers-dev/renovate-workflow/pull/30). |
+| **plan-closure** | Docs-only archive (this PR). |
+
+**Deferred (out of scope for this plan):**
+
+- Migrating beyond Agent Plugins 1.0.0
+- Network schema fetching in conformance tests
+- Auto-bump `$schema` or migration PRs
+- Failing PR CI on upstream drift
+- Porting drift detection to `cursor-team-marketplace` (pattern documented; separate work later)
 
 # Agent Plugins spec-drift detection
 
@@ -316,7 +334,7 @@ Mark `spec-drift-detection` completed in plan frontmatter in the implementation 
 ### spec-drift-detection
 
 ```text
-@.cursor/plans/2026-09-14-agent-plugins-spec-drift.plan.md
+@.cursor/plans/archive/2026-09-14-agent-plugins-spec-drift.plan.md
 
 Implement slice spec-drift-detection only. Do not start plan-closure. Do not archive the plan.
 
@@ -347,7 +365,7 @@ Verification: npm test; npm run typecheck; npm run check:agent-plugins-spec-drif
 ### plan-closure
 
 ```text
-@.cursor/plans/2026-09-14-agent-plugins-spec-drift.plan.md
+@.cursor/plans/archive/2026-09-14-agent-plugins-spec-drift.plan.md
 
 Execute only plan-closure.
 
