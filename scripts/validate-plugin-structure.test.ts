@@ -4,6 +4,13 @@ import { describe, expect, it } from "vitest";
 
 const REPO_ROOT = join(import.meta.dirname, "..");
 
+function readPackageVersion(): string {
+  const packageJson = JSON.parse(
+    readFileSync(join(REPO_ROOT, "package.json"), "utf8"),
+  ) as { version: string };
+  return packageJson.version;
+}
+
 /** Closed Agent Plugins 1.0 portable manifest top-level fields (§5.2). */
 const PORTABLE_PLUGIN_TOP_LEVEL_KEYS = new Set([
   "$schema",
@@ -19,6 +26,8 @@ const PORTABLE_PLUGIN_TOP_LEVEL_KEYS = new Set([
 ]);
 
 describe("validate-plugin-structure", () => {
+  const packageVersion = readPackageVersion();
+
   it("root plugin.json uses only Agent Plugins 1.0 portable top-level fields", () => {
     const manifestPath = join(REPO_ROOT, "plugin.json");
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<
@@ -30,7 +39,7 @@ describe("validate-plugin-structure", () => {
       "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
     );
     expect(manifest.name).toBe("renovate-workflow");
-    expect(manifest.version).toBe("0.2.0");
+    expect(manifest.version).toBe(packageVersion);
 
     const keys = Object.keys(manifest);
     for (const key of keys) {
@@ -64,7 +73,7 @@ describe("validate-plugin-structure", () => {
       unknown
     >;
 
-    expect(manifest.version).toBe("0.2.0");
+    expect(manifest.version).toBe(packageVersion);
     expect(manifest.skills).toBe("./skills");
     expect(manifest.agents).toBe("./.agents");
   });
