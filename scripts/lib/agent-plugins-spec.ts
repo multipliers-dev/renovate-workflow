@@ -26,14 +26,44 @@ export function buildPublishedSchemaUrl(version: string): string {
   return `${AGENT_PLUGINS_SCHEMA_BASE}/${version}/plugin.schema.json`;
 }
 
-export function parseDeclaredSpecVersion($schema: string): string {
-  const match = DECLARED_SCHEMA_PATTERN.exec($schema);
+export function parseAgentPluginsSchemaUrl(schemaUrl: string): string {
+  const match = DECLARED_SCHEMA_PATTERN.exec(schemaUrl);
   if (!match) {
+    throw new Error(
+      `malformed Agent Plugins schema URL: expected https://agent-plugins.org/schemas/X.Y.Z/plugin.schema.json`,
+    );
+  }
+  return match[1]!;
+}
+
+export function parseDeclaredSpecVersion($schema: string): string {
+  try {
+    return parseAgentPluginsSchemaUrl($schema);
+  } catch {
     throw new Error(
       `malformed $schema URL: expected https://agent-plugins.org/schemas/X.Y.Z/plugin.schema.json`,
     );
   }
-  return match[1]!;
+}
+
+export function parsePublishedSchemaDocumentVersion(schemaDocument: string): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(schemaDocument) as unknown;
+  } catch {
+    throw new Error("published schema document is not valid JSON");
+  }
+
+  if (typeof parsed !== "object" || parsed === null || !("$id" in parsed)) {
+    throw new Error("published schema document is missing $id");
+  }
+
+  const schemaId = (parsed as { $id: unknown }).$id;
+  if (typeof schemaId !== "string") {
+    throw new Error("published schema document has invalid $id");
+  }
+
+  return parseAgentPluginsSchemaUrl(schemaId);
 }
 
 export function parsePublishedSpecVersion(specMarkdown: string): string {
@@ -81,15 +111,15 @@ export function confirmPublishedUpstreamVersion(
 ): string {
   const { markdownVersion, schemaVersion, schemaHttpStatus } = signals;
 
-  if (markdownVersion !== schemaVersion) {
-    throw new Error(
-      `published signal mismatch: specification.md reports ${markdownVersion} but schema confirmation used ${schemaVersion}`,
-    );
-  }
-
   if (schemaHttpStatus !== 200) {
     throw new Error(
       `published schema URL returned HTTP ${schemaHttpStatus} for version ${schemaVersion}`,
+    );
+  }
+
+  if (markdownVersion !== schemaVersion) {
+    throw new Error(
+      `published signal mismatch: specification.md reports ${markdownVersion} but published schema document $id reports ${schemaVersion}`,
     );
   }
 

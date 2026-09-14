@@ -8,6 +8,7 @@ import {
   confirmPublishedUpstreamVersion,
   evaluateSpecRelationship,
   parseDeclaredSpecVersion,
+  parsePublishedSchemaDocumentVersion,
   parsePublishedSpecVersion,
   PUBLISHED_SPEC_MD_URL,
   type SpecRelationshipEvaluation,
@@ -122,21 +123,23 @@ async function fetchText(url: string, deps: DriftCheckDeps): Promise<string> {
   return response.text();
 }
 
-async function fetchSchemaHttpStatus(schemaUrl: string, deps: DriftCheckDeps): Promise<number> {
+async function fetchPublishedSchemaDocument(
+  schemaUrl: string,
+  deps: DriftCheckDeps,
+): Promise<{ status: number; body: string }> {
   let response: Response;
   try {
-    response = await deps.fetch(schemaUrl, { method: "HEAD" });
+    response = await deps.fetch(schemaUrl, { method: "GET" });
   } catch (error) {
     throw new Error(
       `failed to fetch ${schemaUrl}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 
-  if (response.status === 405 || response.status === 501) {
-    response = await deps.fetch(schemaUrl, { method: "GET" });
-  }
-
-  return response.status;
+  return {
+    status: response.status,
+    body: await response.text(),
+  };
 }
 
 export async function runAgentPluginsSpecDriftCheck(
@@ -152,12 +155,16 @@ export async function runAgentPluginsSpecDriftCheck(
   const specMarkdown = await fetchText(PUBLISHED_SPEC_MD_URL, deps);
   const markdownVersion = parsePublishedSpecVersion(specMarkdown);
   const publishedSchemaUrl = buildPublishedSchemaUrl(markdownVersion);
-  const schemaHttpStatus = await fetchSchemaHttpStatus(publishedSchemaUrl, deps);
+  const schemaDocument = await fetchPublishedSchemaDocument(publishedSchemaUrl, deps);
+  const schemaVersion =
+    schemaDocument.status === 200
+      ? parsePublishedSchemaDocumentVersion(schemaDocument.body)
+      : markdownVersion;
 
   const latestPublishedVersion = confirmPublishedUpstreamVersion({
     markdownVersion,
-    schemaVersion: markdownVersion,
-    schemaHttpStatus,
+    schemaVersion,
+    schemaHttpStatus: schemaDocument.status,
   });
 
   const evaluation = evaluateSpecRelationship({

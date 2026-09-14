@@ -77,7 +77,7 @@ The check outputs a `relationship`:
 A published upstream version is confirmed only when **both** signals agree:
 
 1. [`specification.md`](https://agent-plugins.org/specification.md) reports `Status: Published` and a `Spec Version`
-2. `https://agent-plugins.org/schemas/{version}/plugin.schema.json` returns HTTP **200**
+2. `https://agent-plugins.org/schemas/{version}/plugin.schema.json` returns HTTP **200**, and its document `$id` reports the same version
 
 If those signals disagree (for example markdown says `1.1.0` Published but the schema URL 404s), the check fails as an upstream/check error — it does **not** report `behind`, `current`, or `ahead`.
 

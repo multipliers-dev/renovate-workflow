@@ -11,6 +11,7 @@ import {
   confirmPublishedUpstreamVersion,
   evaluateSpecRelationship,
   parseDeclaredSpecVersion,
+  parsePublishedSchemaDocumentVersion,
   parsePublishedSpecVersion,
   PUBLISHED_SPEC_MD_URL,
 } from "./lib/agent-plugins-spec.js";
@@ -36,6 +37,12 @@ function writePluginJson(dir: string, schemaUrl: string): string {
     JSON.stringify({ $schema: schemaUrl, name: "test-plugin", version: "0.0.0" }, null, 2),
   );
   return pluginJsonPath;
+}
+
+function schemaDocument(version: string): string {
+  return JSON.stringify({
+    $id: buildPublishedSchemaUrl(version),
+  });
 }
 
 function mockFetch(handlers: Record<string, () => Response | Promise<Response>>): typeof fetch {
@@ -139,6 +146,10 @@ describe("agent-plugins-spec library", () => {
     ).toBe("1.0.0");
   });
 
+  it("parses published schema document version from $id", () => {
+    expect(parsePublishedSchemaDocumentVersion(schemaDocument("1.0.0"))).toBe("1.0.0");
+  });
+
   it("throws on published signal mismatch", () => {
     expect(() =>
       confirmPublishedUpstreamVersion({
@@ -175,7 +186,7 @@ describe("check-agent-plugins-spec-drift CLI", () => {
         readFileSync,
         fetch: mockFetch({
           [PUBLISHED_SPEC_MD_URL]: () => new Response(PUBLISHED_SPEC_FIXTURE, { status: 200 }),
-          [`HEAD ${schemaUrl}`]: () => new Response(null, { status: 200 }),
+          [`GET ${schemaUrl}`]: () => new Response(schemaDocument("1.0.0"), { status: 200 }),
         }),
       },
     );
@@ -199,7 +210,7 @@ describe("check-agent-plugins-spec-drift CLI", () => {
         readFileSync,
         fetch: mockFetch({
           [PUBLISHED_SPEC_MD_URL]: () => new Response(PUBLISHED_SPEC_FIXTURE_1_1, { status: 200 }),
-          [`HEAD ${schemaUrl}`]: () => new Response(null, { status: 200 }),
+          [`GET ${schemaUrl}`]: () => new Response(schemaDocument("1.1.0"), { status: 200 }),
         }),
       },
     );
@@ -222,7 +233,7 @@ describe("check-agent-plugins-spec-drift CLI", () => {
         readFileSync,
         fetch: mockFetch({
           [PUBLISHED_SPEC_MD_URL]: () => new Response(PUBLISHED_SPEC_FIXTURE_1_1, { status: 200 }),
-          [`HEAD ${schemaUrl}`]: () => new Response(null, { status: 200 }),
+          [`GET ${schemaUrl}`]: () => new Response(schemaDocument("1.1.0"), { status: 200 }),
         }),
       },
     );
@@ -284,11 +295,33 @@ describe("check-agent-plugins-spec-drift CLI", () => {
           readFileSync,
           fetch: mockFetch({
             [PUBLISHED_SPEC_MD_URL]: () => new Response(PUBLISHED_SPEC_FIXTURE_1_1, { status: 200 }),
-            [`HEAD ${schemaUrl}`]: () => new Response(null, { status: 404 }),
+            [`GET ${schemaUrl}`]: () => new Response("not found", { status: 404 }),
           }),
         },
       ),
     ).rejects.toThrow(/published schema URL returned HTTP 404/);
+  });
+
+  it("fails when markdown and published schema document $id disagree", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "agent-plugins-spec-"));
+    const pluginJsonPath = writePluginJson(
+      tempDir,
+      "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+    );
+    const schemaUrl = buildPublishedSchemaUrl("1.1.0");
+
+    await expect(
+      runAgentPluginsSpecDriftCheck(
+        { pluginJsonPath, jsonOutput: true },
+        {
+          readFileSync,
+          fetch: mockFetch({
+            [PUBLISHED_SPEC_MD_URL]: () => new Response(PUBLISHED_SPEC_FIXTURE_1_1, { status: 200 }),
+            [`GET ${schemaUrl}`]: () => new Response(schemaDocument("1.0.0"), { status: 200 }),
+          }),
+        },
+      ),
+    ).rejects.toThrow(/published signal mismatch/);
   });
 
   it("fails on upstream fetch failure", async () => {
