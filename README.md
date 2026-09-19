@@ -4,6 +4,8 @@ Governed Renovate merge ladder with an Agent Plugins 1.0 portable core and Curso
 
 Renovate opens many dependency PRs. This product turns that queue into a repeatable **classify → route → (investigate) → maintainer** path with explicit policy, instead of ad-hoc merges.
 
+**Background:** [Upgrades don't have to be a blind trust exercise](https://dev.to/michaeltruong/upgrades-dont-have-to-be-a-blind-trust-exercise-13mj) (DEV Community) — the problem framing, four-step evidence checklist, and review path that led to this repository.
+
 ```
 classify (/renovate-classifier)
     → route by packet
@@ -104,6 +106,7 @@ Primary adopter path:
 
 Also:
 
+- [Upgrades don't have to be a blind trust exercise](https://dev.to/michaeltruong/upgrades-dont-have-to-be-a-blind-trust-exercise-13mj) — background essay (DEV Community)
 - [docs/versioning.md](docs/versioning.md) — version alignment and git dependency pinning
 - [docs/distribution-discovery.md](docs/distribution-discovery.md) — architecture rationale (maintainer deep-dive)
 - [AGENTS.md](AGENTS.md) — agent command reference
