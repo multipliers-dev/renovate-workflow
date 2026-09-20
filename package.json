@@ -31,7 +31,7 @@
     "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "@types/node": "^24.13.4",
+    "@types/node": "^24.13.6",
     "husky": "^9.1.7",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
