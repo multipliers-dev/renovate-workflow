@@ -1,0 +1,182 @@
+name: Release
+
+# Publish-only release: reads name/version from checked-out manifests at HEAD.
+# Does not bump versions, edit manifests, or commit/push to main.
+#
+# Prerequisites (see docs/versioning.md):
+# - version-bump PR merged (scoped @multipliers-dev/renovate-workflow, private removed)
+# - NPM_TOKEN repository secret configured (npm automation token with publish access)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "publish" and the manifest version (e.g. publish 0.3.0)'
+        required: true
+        type: string
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  EXPECTED_PACKAGE_NAME: "@multipliers-dev/renovate-workflow"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main at HEAD
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Preflight — clean current main
+        run: |
+          set -euo pipefail
+          if [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
+            echo "Release must run from main; got $(git rev-parse --abbrev-ref HEAD)" >&2
+            exit 1
+          fi
+          git fetch origin main
+          LOCAL_HEAD="$(git rev-parse HEAD)"
+          REMOTE_HEAD="$(git rev-parse origin/main)"
+          if [ "$LOCAL_HEAD" != "$REMOTE_HEAD" ]; then
+            echo "HEAD ($LOCAL_HEAD) does not match origin/main ($REMOTE_HEAD)" >&2
+            exit 1
+          fi
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Working tree is not clean:" >&2
+            git status --porcelain >&2
+            exit 1
+          fi
+          echo "publish_commit_sha=$LOCAL_HEAD" >> "$GITHUB_ENV"
+
+      - name: Preflight — aligned manifests and scoped publish name
+        run: |
+          set -euo pipefail
+          PACKAGE_VERSION="$(jq -r '.version' package.json)"
+          PACKAGE_NAME="$(jq -r '.name' package.json)"
+          PLUGIN_VERSION="$(jq -r '.version' plugin.json)"
+          CURSOR_PLUGIN_VERSION="$(jq -r '.version' .cursor-plugin/plugin.json)"
+
+          if [ "$PACKAGE_NAME" != "$EXPECTED_PACKAGE_NAME" ]; then
+            echo "package.json name must be $EXPECTED_PACKAGE_NAME (got $PACKAGE_NAME)" >&2
+            exit 1
+          fi
+          if [ "$(jq -r '.private // false' package.json)" = "true" ]; then
+            echo "package.json must not be private for publish" >&2
+            exit 1
+          fi
+          if [ "$PACKAGE_VERSION" != "$PLUGIN_VERSION" ] || [ "$PACKAGE_VERSION" != "$CURSOR_PLUGIN_VERSION" ]; then
+            echo "Manifest versions must match: package=$PACKAGE_VERSION plugin=$PLUGIN_VERSION cursor-plugin=$CURSOR_PLUGIN_VERSION" >&2
+            exit 1
+          fi
+
+          CONFIRM="${{ github.event.inputs.confirm }}"
+          EXPECTED_CONFIRM="publish ${PACKAGE_VERSION}"
+          if [ "$CONFIRM" != "$EXPECTED_CONFIRM" ]; then
+            echo "Confirmation must be exactly: $EXPECTED_CONFIRM" >&2
+            exit 1
+          fi
+
+          echo "package_name=$PACKAGE_NAME" >> "$GITHUB_ENV"
+          echo "package_version=$PACKAGE_VERSION" >> "$GITHUB_ENV"
+          echo "release_tag=v${PACKAGE_VERSION}" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.22.1"
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Verify and build
+        run: |
+          set -euo pipefail
+          npm ci
+          npm test
+          npm run typecheck
+          npm run build
+
+      - name: Preflight — npm version not yet published
+        run: |
+          set -euo pipefail
+          set +e
+          VIEW_OUTPUT="$(npm view "${package_name}@${package_version}" version 2>&1)"
+          VIEW_EXIT=$?
+          set -e
+
+          if [ "$VIEW_EXIT" -eq 0 ]; then
+            echo "npm registry already has ${package_name}@${package_version} (reported version: ${VIEW_OUTPUT})" >&2
+            exit 1
+          fi
+
+          if echo "$VIEW_OUTPUT" | grep -qE 'E404|404 Not Found|404.*[Nn]o match found|No match found for version'; then
+            echo "npm version ${package_version} is not published yet"
+            exit 0
+          fi
+
+          echo "npm view failed unexpectedly (exit ${VIEW_EXIT}); cannot confirm version absence:" >&2
+          printf '%s\n' "$VIEW_OUTPUT" >&2
+          exit 1
+
+      - name: Preflight — git tag absent on remote
+        run: |
+          set -euo pipefail
+          set +e
+          LS_REMOTE_OUTPUT="$(git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" 2>&1)"
+          LS_REMOTE_EXIT=$?
+          set -e
+
+          if [ "$LS_REMOTE_EXIT" -eq 0 ]; then
+            echo "Remote tag ${release_tag} already exists" >&2
+            exit 1
+          fi
+
+          if [ "$LS_REMOTE_EXIT" -eq 2 ]; then
+            echo "Remote tag ${release_tag} is available"
+            exit 0
+          fi
+
+          echo "git ls-remote failed unexpectedly (exit ${LS_REMOTE_EXIT}); cannot confirm tag absence:" >&2
+          printf '%s\n' "$LS_REMOTE_OUTPUT" >&2
+          exit 1
+
+      - name: Packed artifact smoke test
+        run: |
+          set -euo pipefail
+          PACK_OUTPUT="$(npm pack --ignore-scripts --loglevel error)"
+          TARBALL="$(printf '%s\n' "$PACK_OUTPUT" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk '/\.tgz$/ { t=$0 } END { if (t) print t }')"
+          if [ -z "$TARBALL" ]; then
+            echo "npm pack did not produce a tarball:" >&2
+            printf '%s\n' "$PACK_OUTPUT" >&2
+            exit 1
+          fi
+          SMOKE_DIR="$(mktemp -d)"
+          npm install --no-save "$TARBALL" --prefix "$SMOKE_DIR"
+          "$SMOKE_DIR/node_modules/.bin/renovate-workflow" freshness-poll --help
+          rm -rf "$SMOKE_DIR" "$TARBALL"
+
+      - name: Publish to npm
+        run: npm publish --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create git tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$release_tag" \
+            --target "$publish_commit_sha" \
+            --title "$release_tag" \
+            --notes "$(cat <<EOF
+          Published \`${package_name}@${package_version}\` from commit \`${publish_commit_sha}\`.
+
+          npm and plugin manifests at this commit both read version **${package_version}**.
+          EOF
+          )"

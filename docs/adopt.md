@@ -1,6 +1,8 @@
 # Adopting the Renovate ladder in a consumer repo
 
-Install the **Cursor plugin** from this repository for skills, agent docs, templates, and runbook. Add a small **npm/git devDependency** on the same repo when you need executable helpers (`/renovate-loop --babysit`, freshness poll). Keep **repo-specific facts** local — no vendoring the full tree.
+Install the **Cursor plugin** from this repository for skills, agent docs, templates, and runbook. Add a small **npm devDependency** (or interim **git** install) on the same repo when you need executable helpers (`/renovate-loop --babysit`, freshness poll). Keep **repo-specific facts** local — no vendoring the full tree.
+
+**Distribution status:** the `@multipliers-dev` npm org exists; the target package is **`@multipliers-dev/renovate-workflow`**. First registry release is **`0.3.0`** (after the version-bump PR merges). Until then, use the git devDependency below. Plugin and npm share one repository version — see [versioning.md](versioning.md#unified-version-policy).
 
 ---
 
@@ -9,7 +11,7 @@ Install the **Cursor plugin** from this repository for skills, agent docs, templ
 | Layer | Source | Consumer action |
 | --- | --- | --- |
 | Skills, runbook, portable rubric, agent prompts, report templates | **This repo as a Cursor plugin** | Import marketplace (step 1), then install the `renovate-workflow` plugin (step 2) |
-| Executable TypeScript (`scripts/lib/*`, freshness poll CLI) | **Same repo via npm/git** | `devDependencies` when using `--babysit` or the freshness poll CLI (see [Enable loop / babysit helpers](#enable-loop--babysit-helpers)) |
+| Executable CLI (`renovate-workflow freshness-poll`) | **npm package** (or interim git install) | `devDependencies` when using `--babysit` or the freshness poll CLI (see [Enable loop / babysit helpers](#enable-loop--babysit-helpers)) |
 | Policy facts, Renovate bot config, CI workflow | **Your repo** | One-time copy + customize |
 
 ### Portable vs Cursor layers (this repo)
@@ -136,7 +138,22 @@ Reports are written per run; never commit them.
 
 Add when you need `/renovate-loop --babysit` or the freshness poll CLI. Plain `/renovate-loop` uses the plugin only. Skip this section if you only use the classifier.
 
-In the consumer repo `package.json`:
+### Target (after `@multipliers-dev/renovate-workflow@0.3.0` is published)
+
+```json
+{
+  "devDependencies": {
+    "@multipliers-dev/renovate-workflow": "^0.3.0"
+  },
+  "scripts": {
+    "renovate:freshness-poll": "renovate-workflow freshness-poll"
+  }
+}
+```
+
+No `tsx` required — the published package ships a compiled CLI.
+
+### Interim (git install — until consumer migration)
 
 ```json
 {
@@ -149,6 +166,8 @@ In the consumer repo `package.json`:
   }
 }
 ```
+
+The `scripts/` tree in the installable package is a **temporary legacy surface** for git consumers. It is not the stable npm API.
 
 Then `npm install`.
 
