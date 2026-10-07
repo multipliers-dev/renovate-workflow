@@ -127,11 +127,24 @@ jobs:
       - name: Preflight — git tag absent on remote
         run: |
           set -euo pipefail
-          if git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" >/dev/null 2>&1; then
+          set +e
+          LS_REMOTE_OUTPUT="$(git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" 2>&1)"
+          LS_REMOTE_EXIT=$?
+          set -e
+
+          if [ "$LS_REMOTE_EXIT" -eq 0 ]; then
             echo "Remote tag ${release_tag} already exists" >&2
             exit 1
           fi
-          echo "Remote tag ${release_tag} is available"
+
+          if [ "$LS_REMOTE_EXIT" -eq 2 ]; then
+            echo "Remote tag ${release_tag} is available"
+            exit 0
+          fi
+
+          echo "git ls-remote failed unexpectedly (exit ${LS_REMOTE_EXIT}); cannot confirm tag absence:" >&2
+          printf '%s\n' "$LS_REMOTE_OUTPUT" >&2
+          exit 1
 
       - name: Packed artifact smoke test
         run: |
