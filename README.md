@@ -129,7 +129,9 @@ This repository uses a **two-step release** — version bump in a reviewed PR, t
 1. Merge the `version-bump-0.3.0` PR (scoped name, `0.3.0`, not private).
 2. Add **`NPM_TOKEN`** as a GitHub Actions repository secret — an npm automation token with publish access to `@multipliers-dev/renovate-workflow`.
 
-The release workflow reads **name and version from the checked-out `package.json` only** (`npm publish --access public` with no CLI coordinate override). It does not bump versions or commit to `main`. npm and plugin always share version *V* at the same commit.
+The release workflow reads **name and version from the checked-out `package.json` only** (`npm publish --access public` with no CLI coordinate override). It does not bump versions or commit to `main`. npm and plugin always share version *V* at the same commit. Only one release dispatch runs at a time (`concurrency: release`).
+
+If `npm publish` succeeds but tag/GitHub Release creation fails, **do not republish** — verify the registry version matches the intended commit, then create the missing tag and GitHub Release manually. See [docs/versioning.md § Partial release recovery](docs/versioning.md#partial-release-recovery).
 
 Full policy: [docs/versioning.md](docs/versioning.md)
 

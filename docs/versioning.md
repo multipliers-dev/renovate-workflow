@@ -70,12 +70,30 @@ After the version-bump PR merges:
 | Scoped publish name | `package.json` `"name"` is `@multipliers-dev/renovate-workflow`; not `private` |
 | Confirmation input | Dispatcher typed `publish X.Y.Z` matching manifests |
 | `npm ci` → test → typecheck → build | Same gates as CI |
-| npm version absent | `npm view` for scoped name at manifest version fails |
+| Release concurrency | Workflow-level `concurrency: release` with `cancel-in-progress: false` — only one release dispatch runs at a time |
+| npm version absent | `npm view` returns E404 / not-found for the exact scoped name at manifest version; registry/network/auth errors fail the release (not treated as absence) |
 | git tag absent | `vX.Y.Z` not on remote |
 | Packed artifact smoke | `npm pack` + temp install + `renovate-workflow freshness-poll --help` |
 | Tag ↔ publish commit | GitHub Release and `vX.Y.Z` tag point at the published commit SHA |
 
 CI also runs `npm publish --dry-run` on every push/PR (see [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)).
+
+### Partial release recovery
+
+`npm publish` and GitHub Release creation are **not atomic**. If `npm publish` succeeds but tag/GitHub Release creation fails:
+
+1. **Do not republish** — do not re-run the release workflow or attempt another `npm publish` for the same version.
+2. **Verify the registry artifact** — confirm `npm view @multipliers-dev/renovate-workflow@X.Y.Z` reports the intended version and matches the release commit you meant to ship (compare against `main` HEAD at dispatch time and the packed tarball from that commit if needed).
+3. **Create the missing tag and GitHub Release** at that verified commit:
+
+   ```bash
+   gh release create vX.Y.Z \
+     --target <publish-commit-sha> \
+     --title vX.Y.Z \
+     --notes "Published @multipliers-dev/renovate-workflow@X.Y.Z from commit <publish-commit-sha>."
+   ```
+
+Forward-fix only — npm does not support unpublish as a routine rollback path.
 
 ## Version semantics (pre-1.0)
 

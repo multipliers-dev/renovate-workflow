@@ -15,6 +15,10 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -101,11 +105,24 @@ jobs:
       - name: Preflight — npm version not yet published
         run: |
           set -euo pipefail
-          if npm view "${package_name}@${package_version}" version 2>/dev/null; then
-            echo "npm registry already has ${package_name}@${package_version}" >&2
+          set +e
+          VIEW_OUTPUT="$(npm view "${package_name}@${package_version}" version 2>&1)"
+          VIEW_EXIT=$?
+          set -e
+
+          if [ "$VIEW_EXIT" -eq 0 ]; then
+            echo "npm registry already has ${package_name}@${package_version} (reported version: ${VIEW_OUTPUT})" >&2
             exit 1
           fi
-          echo "npm version ${package_version} is not published yet"
+
+          if echo "$VIEW_OUTPUT" | grep -qE 'E404|404 Not Found|404.*[Nn]o match found|No match found for version'; then
+            echo "npm version ${package_version} is not published yet"
+            exit 0
+          fi
+
+          echo "npm view failed unexpectedly (exit ${VIEW_EXIT}); cannot confirm version absence:" >&2
+          printf '%s\n' "$VIEW_OUTPUT" >&2
+          exit 1
 
       - name: Preflight — git tag absent on remote
         run: |
