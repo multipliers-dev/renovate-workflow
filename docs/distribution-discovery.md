@@ -15,7 +15,7 @@ Evidence for the minimum local boundary when adopting the Renovate ladder via **
 
 **Unified version policy:** version *V* always means the same repository commit for both channels. Releases are intentional and two-step — version bump in a reviewed PR, then manual [`release.yml`](../.github/workflows/release.yml) dispatch (`npm publish --access public` + `vX.Y.Z` tag + GitHub Release). Merging to `main` never publishes. See [versioning.md](versioning.md).
 
-**Rollout state (2026-10):** release infrastructure is wired; first npm publish awaits `version-bump-0.3.0` merge + `NPM_TOKEN` secret. Git consumers (Codenames, Portfolio) still use the legacy `tsx` + `scripts/` path until migrated.
+**Rollout state (2026-10):** `version-bump-0.3.0` merged on `main`; release workflow uses npm **Trusted Publishing** (OIDC). First npm publish awaits one-time registry bootstrap + Trusted Publisher configuration (see [versioning.md § Trusted Publishing](versioning.md#trusted-publishing-oidc)). Git consumers (Codenames, Portfolio) still use the legacy `tsx` + `scripts/` path until migrated.
 
 **Precedent:** [Cursor multi-plugin repositories](https://cursor.com/docs/reference/plugins#cursor-multi-plugin-repositories) — a repo can ship `.cursor-plugin/marketplace.json` plus per-plugin `.cursor-plugin/plugin.json`. GitHub import (`/add-plugin <url>` or Customize → Plugins → Add → From GitHub) imports the **marketplace**, then the user installs listed plugins. This repo uses that pattern as a **single-plugin marketplace wrapper** (`"source": "."` → root `.cursor-plugin/plugin.json`). That is a **local/non-team** marketplace import, not Cursor's public marketplace and not an org Team Marketplace catalog.
 

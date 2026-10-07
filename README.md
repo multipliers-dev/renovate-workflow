@@ -126,8 +126,12 @@ This repository uses a **two-step release** — version bump in a reviewed PR, t
 
 **Before first release:**
 
-1. Merge the `version-bump-0.3.0` PR (scoped name, `0.3.0`, not private).
-2. Add **`NPM_TOKEN`** as a GitHub Actions repository secret — an npm automation token with publish access to `@multipliers-dev/renovate-workflow`.
+1. `version-bump-0.3.0` merged on `main` (scoped name, `0.3.0`, not private).
+2. **One-time registry bootstrap** — the package must exist on npm before Trusted Publishing can be configured. Recommended: `npm stage publish` locally to create the `0.0.0-stage` placeholder; do **not** approve the staged submission. See [docs/versioning.md § Trusted Publishing bootstrap](docs/versioning.md#trusted-publishing-bootstrap).
+3. Configure npm **Trusted Publisher** for workflow `release.yml` (`multipliers-dev/renovate-workflow`). See [docs/versioning.md § npm Trusted Publisher settings](docs/versioning.md#npm-trusted-publisher-settings).
+4. Complete the first OIDC publish within **48 hours** of creating the Trusted Publisher configuration.
+
+Publishing uses **OIDC** (no `NPM_TOKEN`). Provenance is automatic for public packages from this public repo.
 
 The release workflow reads **name and version from the checked-out `package.json` only** (`npm publish --access public` with no CLI coordinate override). It does not bump versions or commit to `main`. npm and plugin always share version *V* at the same commit. Only one release dispatch runs at a time (`concurrency: release`).
 
