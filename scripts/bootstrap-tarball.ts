@@ -8,12 +8,13 @@
  *
  * Prints the absolute path to the bootstrap .tgz on stdout (last line).
  */
-import { existsSync, rmSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   assertCheckoutVersion,
   createBootstrapTarballFromValidatedPack,
   packValidatedReleaseArtifact,
+  removePackedArtifactTree,
 } from "./lib/bootstrap-tarball.js";
 
 const REPO_ROOT = resolve(import.meta.dirname, "..");
@@ -64,7 +65,7 @@ function main(): void {
     console.log(tarballPath);
   } finally {
     if (createdValidatedTarball && validatedTarball) {
-      rmSync(validatedTarball, { force: true });
+      removePackedArtifactTree(validatedTarball);
     }
   }
 }

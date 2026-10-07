@@ -8,20 +8,15 @@ import {
   assertBootstrapTarballEntries,
   createBootstrapTarballFromValidatedPack,
   listTarballEntries,
-  parsePackTarballName,
+  packValidatedReleaseArtifact,
+  removePackedArtifactTree,
 } from "./lib/bootstrap-tarball.js";
 
 const REPO_ROOT = resolve(import.meta.dirname, "..");
 
 function runValidatedPack(): string {
   execSync("npm run build", { cwd: REPO_ROOT, stdio: "pipe" });
-  const packOutput = execSync("npm pack --ignore-scripts --loglevel error", {
-    cwd: REPO_ROOT,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  const tarballName = parsePackTarballName(packOutput);
-  return join(REPO_ROOT, tarballName);
+  return packValidatedReleaseArtifact(REPO_ROOT);
 }
 
 describe("bootstrap tarball preflight", () => {
@@ -62,7 +57,7 @@ describe("bootstrap tarball preflight", () => {
         const repackedEntries = listTarballEntries(tarballPath);
         expect(repackedEntries).toEqual(entries);
       } finally {
-        rmSync(validatedTarball, { force: true });
+        removePackedArtifactTree(validatedTarball);
         rmSync(outputDir, { recursive: true, force: true });
       }
     }
@@ -93,7 +88,7 @@ describe("bootstrap tarball preflight", () => {
         expect(entries).toContain("package/");
         expect(() => assertBootstrapTarballEntries(entries)).toThrow(/package\/ \(directory entry/);
       } finally {
-        rmSync(validatedTarball, { force: true });
+        removePackedArtifactTree(validatedTarball);
         rmSync(workDir, { recursive: true, force: true });
       }
     }

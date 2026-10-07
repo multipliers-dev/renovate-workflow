@@ -7,9 +7,10 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 export const BOOTSTRAP_VERSION = "0.0.1";
 
@@ -104,6 +105,37 @@ export type BootstrapTarballResult = {
   manifest: { name: string; version: string };
 };
 
+/** Lifecycle hooks that reference dev-only paths excluded from the packed `files` list. */
+const ISOLATED_PACK_SCRIPT_KEYS = ["prepare", "prepack"] as const;
+
+function stripIsolatedPackLifecycleScripts(packageDir: string): void {
+  const packageJsonPath = join(packageDir, "package.json");
+  const manifest = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+    scripts?: Record<string, string>;
+  };
+  if (!manifest.scripts) {
+    return;
+  }
+  for (const key of ISOLATED_PACK_SCRIPT_KEYS) {
+    delete manifest.scripts[key];
+  }
+  writeFileSync(packageJsonPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+}
+
+function packDirectoryToDestination(packageDir: string, packDestination: string): string {
+  mkdirSync(packDestination, { recursive: true });
+  const packOutput = execSync(
+    `npm pack --ignore-scripts --loglevel error --pack-destination "${packDestination}"`,
+    {
+      cwd: packageDir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }
+  );
+  const packedName = parsePackTarballName(packOutput);
+  return join(packDestination, packedName);
+}
+
 /**
  * Build a disposable bootstrap tarball from an already-validated `npm pack` artifact.
  *
@@ -143,14 +175,12 @@ export function createBootstrapTarballFromValidatedPack(
       cwd: isolatedPackageDir,
       stdio: "pipe",
     });
+    // Packed artifact omits scripts/*.sh; npm pack may still run `prepare` unless removed.
+    stripIsolatedPackLifecycleScripts(isolatedPackageDir);
 
-    const packOutput = execSync("npm pack --ignore-scripts --loglevel error", {
-      cwd: isolatedPackageDir,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const packedName = parsePackTarballName(packOutput);
-    const packedPath = join(isolatedPackageDir, packedName);
+    const packDir = join(workRoot, "packed");
+    const packedPath = packDirectoryToDestination(isolatedPackageDir, packDir);
+    const packedName = basename(packedPath);
     const finalPath = join(outputDir, packedName);
 
     copyFileSync(packedPath, finalPath);
@@ -174,13 +204,12 @@ export function createBootstrapTarballFromValidatedPack(
 }
 
 export function packValidatedReleaseArtifact(repoRoot: string): string {
-  const packOutput = execSync("npm pack --ignore-scripts --loglevel error", {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  const tarballName = parsePackTarballName(packOutput);
-  return join(repoRoot, tarballName);
+  const packDir = mkdtempSync(join(tmpdir(), "renovate-workflow-validated-pack-"));
+  return packDirectoryToDestination(repoRoot, packDir);
+}
+
+export function removePackedArtifactTree(tarballPath: string): void {
+  rmSync(dirname(tarballPath), { recursive: true, force: true });
 }
 
 export function assertCheckoutVersion(repoRoot: string, expectedVersion: string): void {
