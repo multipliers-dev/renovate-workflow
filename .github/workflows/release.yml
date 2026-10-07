@@ -86,7 +86,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version: "22.22.1"
           cache: npm
           registry-url: https://registry.npmjs.org
 
@@ -120,9 +120,10 @@ jobs:
         run: |
           set -euo pipefail
           PACK_OUTPUT="$(npm pack --ignore-scripts --loglevel error)"
-          TARBALL="$(echo "$PACK_OUTPUT" | awk '/\.tgz$/ { print; exit }')"
+          TARBALL="$(printf '%s\n' "$PACK_OUTPUT" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk '/\.tgz$/ { t=$0 } END { if (t) print t }')"
           if [ -z "$TARBALL" ]; then
-            echo "npm pack did not produce a tarball" >&2
+            echo "npm pack did not produce a tarball:" >&2
+            printf '%s\n' "$PACK_OUTPUT" >&2
             exit 1
           fi
           SMOKE_DIR="$(mktemp -d)"
