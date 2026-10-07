@@ -23,7 +23,7 @@ Root `plugin.json` is the portable [Agent Plugins 1.0](https://agent-plugins.org
 | npm org / scope | **`@multipliers-dev`** — created and controlled by project owner |
 | Target publish name | **`@multipliers-dev/renovate-workflow`** (confirmed) |
 | First npm version | **`0.3.0`** (after `version-bump-0.3.0` PR merges) |
-| Registry publish today | **Not yet** — `"private": true` until the version-bump PR; release workflow is wired but requires scoped manifest + `NPM_TOKEN` |
+| Registry publish today | **Not yet** — manifests on `main` read `0.3.0` / scoped name; release workflow uses npm **Trusted Publishing** (OIDC), not `NPM_TOKEN` |
 
 Plugin manifest `name` fields (`plugin.json`, `.cursor-plugin/plugin.json`) stay **`renovate-workflow`** — only `package.json` uses the scoped npm name after the version-bump slice.
 
@@ -54,12 +54,157 @@ For **`0.3.0`**, the same PR also:
 
 After the version-bump PR merges:
 
-1. Configure **`NPM_TOKEN`** as a GitHub Actions repository secret (npm automation token with publish access to `@multipliers-dev/renovate-workflow`). Required before the first release.
-2. In GitHub Actions, run **Release** against `main`.
-3. Confirm with input `publish X.Y.Z` (exact manifest version).
-4. Workflow checks out `main`, runs safeguards, `npm publish --access public` (reads name/version from checked-out `package.json` only — no CLI coordinate override), tags `vX.Y.Z` at the same commit, and creates a GitHub Release.
+1. Complete the **one-time registry bootstrap** if `@multipliers-dev/renovate-workflow` does not yet exist on npm (see [Trusted Publishing bootstrap](#trusted-publishing-bootstrap) below).
+2. Configure the npm **Trusted Publisher** for this repository’s release workflow (see [npm Trusted Publisher settings](#npm-trusted-publisher-settings)).
+3. In GitHub Actions, run **Release** against `main`.
+4. Confirm with input `publish X.Y.Z` (exact manifest version).
+5. Workflow checks out `main`, runs safeguards, `npm publish --access public` via OIDC (reads name/version from checked-out `package.json` only — no CLI coordinate override), tags `vX.Y.Z` at the same commit, and creates a GitHub Release.
 
 **Not automated:** publish on merge, version bumps in the release workflow, commits back to `main`, release-please, Changesets, or plugin-only tags without npm.
+
+## Trusted Publishing (OIDC)
+
+The release workflow authenticates with npm via [Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (GitHub Actions OIDC). **Do not** create or store an `NPM_TOKEN` / `NODE_AUTH_TOKEN` for publishing.
+
+### Requirements (official)
+
+| Requirement | This repository |
+| --- | --- |
+| npm CLI | **≥ 11.5.1** (Trusted Publishing); release workflow uses Node **24** (bundled npm meets this) |
+| Node.js | **≥ 22.14.0** per npm docs; release workflow pins **24** |
+| GitHub runner | **GitHub-hosted** (`ubuntu-latest`) — self-hosted runners are not supported |
+| Workflow permission | `id-token: write` (plus `contents: write` for tag/GitHub Release) |
+| `actions/setup-node` | **Do not** set `registry-url` without `NODE_AUTH_TOKEN` — an empty `_authToken` line blocks OIDC ([actions/setup-node#1551](https://github.com/actions/setup-node/issues/1551)) |
+| `package.json` `repository.url` | Must match the publishing GitHub repo (case-sensitive): `git+https://github.com/multipliers-dev/renovate-workflow.git` |
+
+### Provenance
+
+When publishing via Trusted Publishing from a **public** GitHub repository to a **public** package, npm **automatically** generates and publishes provenance attestations. **Do not** pass `--provenance` on the publish command — it is on by default for this path. See [Generating provenance statements](https://docs.npmjs.com/generating-provenance-statements) and [Trusted publishing — Automatic provenance generation](https://docs.npmjs.com/trusted-publishers/#automatic-provenance-generation).
+
+After a successful release, verify with `npm audit signatures` in a consumer checkout.
+
+### Can Trusted Publishing be configured before the first publish?
+
+**No.** npm requires the package to **already exist on the registry** before a Trusted Publisher can be attached. Official sources:
+
+- [Trusted publishing](https://docs.npmjs.com/trusted-publishers/) — configure via **package settings on npmjs.com** (package must exist).
+- [`npm trust` prerequisites](https://docs.npmjs.com/cli/v11/commands/npm-trust/) — “Package must exist: The package you're configuring must already exist on the npm registry.”
+
+Therefore **`0.3.0` can be the first OIDC-published version**, but only after a **one-time bootstrap** creates the package name on npm without occupying the `0.3.0` semver slot in the staging index.
+
+### Staged vs direct publish (same version)
+
+Per [`npm stage` key behaviors](https://docs.npmjs.com/cli/v12/commands/npm-stage/):
+
+- **Staged and published versions share one semver uniqueness index** — you **cannot** `npm publish` a version that already exists as a **staged** version for that package.
+- **Other versions can still publish** while unrelated staged versions are pending.
+- **Direct `npm publish` does not supersede** a pending staged submission for the same version.
+- To free a semver slot occupied by staging, run **`npm stage reject <stage-id>`** (requires account 2FA) before direct publish.
+
+**Implication for bootstrap:** running `npm stage publish` from a checkout whose `package.json` reads **`0.3.0`** stages **`0.3.0`** and **blocks** the OIDC `release.yml` publish of `0.3.0` until that staged submission is rejected. Leaving it pending is **not** sufficient.
+
+### Trusted Publishing bootstrap
+
+Choose **one** bootstrap path before configuring the Trusted Publisher and dispatching `release.yml` for `0.3.0`.
+
+#### Option A — Staged placeholder with disposable version (recommended; keeps `0.3.0` for OIDC)
+
+Uses [staged publishing](https://docs.npmjs.com/staged-publishing): staging a **new** scoped package also creates a public `0.0.0-stage` placeholder so the package exists on npm. `npm stage publish` does **not** require 2FA.
+
+Stage a **bootstrap version other than `0.3.0`** so the `0.3.0` semver slot stays free for `release.yml`. The `0.0.1` version is **disposable local state only** — never commit it.
+
+**1. Bootstrap (one-time, local)**
+
+From a checkout of the merged `0.3.0` commit on `main`, with npm **≥ 11.15.0** and Node **≥ 22.14.0**:
+
+```bash
+npm ci && npm test && npm run typecheck && npm run build
+
+# Disposable local manifest only — do not commit
+npm pkg set version=0.0.1
+npm stage publish --access public
+
+# Restore tracked files from git (do not rely on another npm pkg set)
+git checkout -- package.json
+
+# Record the bootstrap stage id for post-release cleanup
+npm stage list @multipliers-dev/renovate-workflow
+```
+
+**Do not** approve the staged `0.0.1` submission. A pending `0.0.1` does **not** block OIDC publish of `0.3.0`. The registry now has the package shell (`0.0.0-stage` placeholder).
+
+**2. Preflight before Trusted Publisher config and `release.yml` dispatch**
+
+Confirm the checkout matches the committed release manifest:
+
+```bash
+test -z "$(git status --porcelain)" || { echo "working tree not clean" >&2; exit 1; }
+test "$(jq -r '.version' package.json)" = "0.3.0" || { echo "package.json version must be 0.3.0" >&2; exit 1; }
+```
+
+**3. Configure Trusted Publisher** (below) **within 48 hours** of creating it — unvalidated configurations expire ([npm docs](https://docs.npmjs.com/trusted-publishers/#trusted-publisher-configuration-expiry), [GitHub changelog](https://github.blog/changelog/2026-10-02-unvalidated-npm-trusted-publishing-configurations-now-expire/)).
+
+Re-run the preflight checks above immediately before dispatch if any local files changed.
+
+**4. Dispatch `release.yml`** with confirmation `publish 0.3.0` — OIDC publishes the real `0.3.0` artifact.
+
+**5. Post-release cleanup (after successful OIDC publication of `0.3.0`)**
+
+Reject the disposable bootstrap stage so it does not linger in the staging area:
+
+```bash
+npm stage list @multipliers-dev/renovate-workflow   # find the pending 0.0.1 stage id
+npm stage reject <stage-id>                         # requires account 2FA
+```
+
+#### Option A′ — Staged `0.3.0`, then explicit reject (only if you already staged `0.3.0`)
+
+If `npm stage publish` was already run with `version: 0.3.0` in `package.json`:
+
+1. `npm stage list @multipliers-dev/renovate-workflow` — note the staged `0.3.0` stage id.
+2. `npm stage reject <stage-id>` — **required** before OIDC publish; requires account 2FA ([`npm stage reject`](https://docs.npmjs.com/cli/v12/commands/npm-stage/#npm-stage-reject)).
+3. Configure Trusted Publisher, then dispatch `release.yml` for `0.3.0`.
+
+#### Option B — One-time interactive `npm publish` (simplest; `0.3.0` is not OIDC-published)
+
+From [Creating and publishing scoped public packages](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages): the first direct publish requires **account 2FA** (or a granular access token with bypass 2FA — not recommended).
+
+1. Maintainer runs locally at the merged commit:
+   ```bash
+   npm ci && npm test && npm run typecheck && npm run build
+   npm publish --access public
+   ```
+2. Configure Trusted Publishing for **future** releases (`0.3.1+`).
+3. **Do not** re-dispatch `release.yml` for `0.3.0` — the version is already on the registry. Create the git tag and GitHub Release manually at the published commit if needed.
+
+For this project’s intentional two-step model, **Option A** preserves `0.3.0` as the first version published through `release.yml` with OIDC. **Do not** run `npm stage publish` with `version: 0.3.0` unless you will follow **Option A′** and reject that staged submission before dispatch.
+
+### npm Trusted Publisher settings
+
+Configure **after** the package exists on npm.
+
+**Web UI** — [npmjs.com](https://www.npmjs.com) → **Packages** → `@multipliers-dev/renovate-workflow` → **Settings** → **Trusted publishing** → **GitHub Actions**:
+
+| Field | Value |
+| --- | --- |
+| Organization or user | `multipliers-dev` |
+| Repository | `renovate-workflow` |
+| Workflow filename | `release.yml` |
+| Environment name | *(leave empty — workflow does not use a GitHub Environment)* |
+| Allowed actions | Allow **`npm publish`** (direct publish matches `release.yml`) |
+
+**CLI equivalent** (requires npm ≥ 11.15.0, account 2FA, write access to the package):
+
+```bash
+npm trust github @multipliers-dev/renovate-workflow \
+  --file release.yml \
+  --repository multipliers-dev/renovate-workflow \
+  --allow-publish
+```
+
+npm does **not** validate the configuration at save time — mismatches surface only at publish time. All fields are case-sensitive; workflow filename is **only** `release.yml` (not `.github/workflows/release.yml`).
+
+After Trusted Publishing is verified, consider **Settings → Publishing access → Require two-factor authentication and disallow tokens** ([npm migration tip](https://docs.npmjs.com/trusted-publishers/#recommended-restrict-token-access-when-using-trusted-publishers)).
 
 ### Release safeguards (blocking)
 

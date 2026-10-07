@@ -86,7 +86,48 @@ flowchart TB
 | npm org / scope `@multipliers-dev` | **Done** — created and controlled by project owner |
 | Target publish name `@multipliers-dev/renovate-workflow` | **Confirmed** — not a namespace to validate during `first-release` |
 
-**Remaining before `first-release`:** `NPM_TOKEN` GitHub Actions secret; `version-bump-0.3.0` merged with scoped release manifest.
+**Remaining before `first-release`:** one-time npm registry bootstrap (package must exist before Trusted Publisher attach); npm Trusted Publisher configured for `release.yml`; dispatch `release.yml` for `0.3.0`.
+
+---
+
+## Trusted Publishing investigation (2026-10-07)
+
+Official npm docs now recommend [Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (GitHub Actions OIDC) over long-lived `NPM_TOKEN` automation tokens. Findings from npm + GitHub primary sources:
+
+| Question | Answer |
+| --- | --- |
+| Configure Trusted Publisher **before** first publish? | **No** — package must already exist on the registry ([`npm trust` prerequisites](https://docs.npmjs.com/cli/v11/commands/npm-trust/), [trusted publishing setup](https://docs.npmjs.com/trusted-publishers/)) |
+| Can `0.3.0` be the first **OIDC**-published version? | **Yes**, after bootstrap creates the package on npm **without occupying the `0.3.0` semver slot** (recommended: local disposable `0.0.1` → `npm stage publish` → `git checkout -- package.json` → verify clean tree + `package.json` `0.3.0`; post-release `npm stage reject` for pending `0.0.1`) |
+| Pending staged `0.3.0` vs OIDC `npm publish` of `0.3.0`? | **Blocks direct publish** — staged and published versions share one semver index ([`npm stage` key behaviors](https://docs.npmjs.com/cli/v12/commands/npm-stage/)). Direct publish does **not** supersede; must `npm stage reject` (2FA) first, or never stage `0.3.0` |
+| Provenance on OIDC publish? | **Automatic** for public package + public GitHub repo — no `--provenance` flag ([trusted publishing § Automatic provenance](https://docs.npmjs.com/trusted-publishers/#automatic-provenance-generation)) |
+| Trusted Publisher expiry | New configuration must complete its **first successful publish within 48 hours** or it expires ([npm docs](https://docs.npmjs.com/trusted-publishers/#trusted-publisher-configuration-expiry)) |
+
+### npm Trusted Publisher settings (`@multipliers-dev/renovate-workflow`)
+
+Configure **after** bootstrap, via package **Settings → Trusted publishing → GitHub Actions**:
+
+| Field | Value |
+| --- | --- |
+| Organization or user | `multipliers-dev` |
+| Repository | `renovate-workflow` |
+| Workflow filename | `release.yml` |
+| Environment name | *(empty)* |
+| Allowed actions | **`npm publish`** |
+
+CLI: `npm trust github @multipliers-dev/renovate-workflow --file release.yml --repository multipliers-dev/renovate-workflow --allow-publish`
+
+### GitHub Actions changes (implemented in `fix/trusted-publishing-release`)
+
+| Change | Rationale |
+| --- | --- |
+| `permissions.id-token: write` | Required for OIDC ([npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)) |
+| Remove `NODE_AUTH_TOKEN` / `NPM_TOKEN` | OIDC replaces token auth |
+| Node **24** in release job | npm recommends; ships npm ≥ 11.5.1 (OIDC minimum) |
+| `package-manager-cache: false` | npm release example recommendation |
+| **No** `registry-url` on `setup-node` | Empty `_authToken` line blocks OIDC when no token set ([setup-node#1551](https://github.com/actions/setup-node/issues/1551)) |
+| No `--provenance` on `npm publish` | Automatic under Trusted Publishing |
+
+Preserves: publish-only model, all §8 preflights, concurrency, packed-artifact smoke, partial-release recovery semantics.
 
 ---
 
@@ -438,7 +479,7 @@ sequenceDiagram
 | --- | --- |
 | **Authority** | Open PR only |
 | **Prerequisites** | package-cli merged |
-| **Scope** | `.github/workflows/release.yml` (`workflow_dispatch`, **publish-only** — `npm publish --access public` from checked-out `package.json`; no version bump, no commit to `main`), all release safeguards from §8, document `NPM_TOKEN` secret requirement for `first-release`, optional `publish-dry-run` CI job on PRs, update [`docs/versioning.md`](docs/versioning.md) + [`docs/adopt.md`](docs/adopt.md) + [`docs/distribution-discovery.md`](docs/distribution-discovery.md) documenting two-step release model, confirmed `@multipliers-dev` scope, and unified version policy |
+| **Scope** | `.github/workflows/release.yml` (`workflow_dispatch`, **publish-only** — `npm publish --access public` from checked-out `package.json`; no version bump, no commit to `main`), all release safeguards from §8, optional `publish-dry-run` CI job on PRs, update [`docs/versioning.md`](docs/versioning.md) + [`docs/adopt.md`](docs/adopt.md) + [`docs/distribution-discovery.md`](docs/distribution-discovery.md) documenting two-step release model, confirmed `@multipliers-dev` scope, and unified version policy. **Superseded for auth:** Trusted Publishing correction PR replaces `NPM_TOKEN` with OIDC (see Trusted Publishing investigation above) |
 | **Expected files** | `.github/workflows/release.yml`, docs above, `README.md` publish section |
 | **Verification** | `npm publish --dry-run` in CI passes; release workflow reads version from manifests only; workflow contains no version-bump or git-commit steps |
 | **External effects** | None |
@@ -461,8 +502,8 @@ sequenceDiagram
 | | |
 | --- | --- |
 | **Authority** | **Merge granted** (or explicit human maintainer dispatch outside agent) — external side effect |
-| **Prerequisites** | `@multipliers-dev` npm org (done); `version-bump-0.3.0` merged; `NPM_TOKEN` configured in GitHub Actions; `main` HEAD manifests read `0.3.0` with scoped `"name"` |
-| **Scope** | Manually dispatch `release.yml` against current `main` — `npm publish --access public`, tag `v0.3.0`, create GitHub Release for the **exact merged commit** (no version/name edits in workflow). Published tarball still includes transition `scripts/` surface |
+| **Prerequisites** | `@multipliers-dev` npm org (done); `version-bump-0.3.0` merged; **one-time registry bootstrap** completed (disposable local `0.0.1` stage + `git checkout -- package.json` + clean-tree/`0.3.0` preflight; must **not** leave staged `0.3.0` pending; see versioning.md § Trusted Publishing bootstrap); npm **Trusted Publisher** configured for `release.yml` within 48h of creation; `main` HEAD manifests read `0.3.0` with scoped `"name"`; after successful OIDC `0.3.0`, reject pending bootstrap stage |
+| **Scope** | Manually dispatch `release.yml` against current `main` — OIDC `npm publish --access public` (provenance automatic), tag `v0.3.0`, create GitHub Release for the **exact merged commit** (no version/name edits in workflow). Published tarball still includes transition `scripts/` surface |
 | **Verification** | All §8 safeguards pass; `npm view @multipliers-dev/renovate-workflow version` → `0.3.0`; temp `npm i` + `renovate-workflow freshness-poll --help`; remote tag `v0.3.0` points at published commit SHA (recorded in release notes). Git consumers not yet migrated may still need pinned pre-scoped commits — see §11 rollback |
 | **External effects** | **npm publish**, git tag, GitHub Release |
 | **Rollback** | Forward-fix via new version-bump PR + publish; consumers stay on git dep until migrated |
@@ -583,7 +624,7 @@ Authority: Open PR only — implement and open the PR; do not merge.
 
 Topology: start from latest origin/main; branch represents only this slice; PR base must be main.
 
-Deliverables: workflow_dispatch publish-only release workflow (npm publish --access public from checked-out package.json; no version bump, no commit to main), all §8 release safeguards, NPM_TOKEN secret documented for first-release, dry-run CI, docs/versioning.md + docs/adopt.md + docs/distribution-discovery.md updates documenting completed @multipliers-dev org, two-step release, and unified npm+plugin version policy. Mark release-infrastructure completed in plan frontmatter in this PR.
+Deliverables: workflow_dispatch publish-only release workflow (npm publish --access public from checked-out package.json; no version bump, no commit to main), all §8 release safeguards, dry-run CI, docs/versioning.md + docs/adopt.md + docs/distribution-discovery.md updates documenting completed @multipliers-dev org, two-step release, and unified npm+plugin version policy. Mark release-infrastructure completed in plan frontmatter in this PR.
 
 Verification: npm publish --dry-run succeeds in CI; release workflow reads name/version from manifests at HEAD only; workflow contains no version-bump or push-to-main steps.
 ```
@@ -609,9 +650,9 @@ Verification: npm test passes (validate-plugin-structure); npm pack asserts scop
 ```text
 @.cursor/plans/2026-10-07-npm-package-distribution.plan.md
 
-Execute slice first-release only. Prerequisites: @multipliers-dev npm org (done); version-bump-0.3.0 merged; main HEAD manifests read 0.3.0 with scoped name; NPM_TOKEN configured in GitHub Actions.
+Execute slice first-release only. Prerequisites: @multipliers-dev npm org (done); version-bump-0.3.0 merged; one-time registry bootstrap completed; npm Trusted Publisher configured for release.yml; main HEAD manifests read 0.3.0 with scoped name.
 
-Authority: Merge granted — manually dispatch release workflow to publish (npm publish --access public), tag, and create GitHub Release from the exact merged commit. Do not bump versions in the workflow.
+Authority: Merge granted — manually dispatch release workflow to OIDC-publish (npm publish --access public), tag, and create GitHub Release from the exact merged commit. Do not bump versions in the workflow.
 
 Topology: release from current origin/main after version-bump-0.3.0 merge.
 
