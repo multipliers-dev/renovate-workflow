@@ -138,7 +138,7 @@ sh scripts/npm-stage-cli-preflight.sh
 
 # --- 1. Validate canonical checkout at 0.3.0 (unchanged throughout) ---
 test -z "$(git status --porcelain)" || { echo "working tree not clean" >&2; exit 1; }
-test "$(jq -r '.version' package.json)" = "0.3.0" || { echo "package.json version must be 0.3.0" >&2; exit 1; }
+node -e 'const p=require("./package.json"); if (p.version !== "0.3.0") { console.error(`Expected package version 0.3.0, got ${p.version}`); process.exit(1) }'
 
 npm ci
 npm test
@@ -172,7 +172,7 @@ npm stage publish "$BOOTSTRAP_TGZ" --access public
 
 # --- 5. Confirm canonical checkout still 0.3.0 and clean ---
 test -z "$(git status --porcelain)" || { echo "bootstrap must not modify the checkout" >&2; exit 1; }
-test "$(jq -r '.version' package.json)" = "0.3.0" || { echo "package.json version must remain 0.3.0" >&2; exit 1; }
+node -e 'const p=require("./package.json"); if (p.version !== "0.3.0") { console.error(`Expected package version to remain 0.3.0, got ${p.version}`); process.exit(1) }'
 
 # Record the bootstrap stage id for post-release cleanup
 npm stage list @multipliers-dev/renovate-workflow
@@ -186,7 +186,7 @@ Confirm the checkout matches the committed release manifest:
 
 ```bash
 test -z "$(git status --porcelain)" || { echo "working tree not clean" >&2; exit 1; }
-test "$(jq -r '.version' package.json)" = "0.3.0" || { echo "package.json version must be 0.3.0" >&2; exit 1; }
+node -e 'const p=require("./package.json"); if (p.version !== "0.3.0") { console.error(`Expected package version 0.3.0, got ${p.version}`); process.exit(1) }'
 ```
 
 **3. Configure Trusted Publisher** (below) **within 48 hours** of creating it — unvalidated configurations expire ([npm docs](https://docs.npmjs.com/trusted-publishers/#trusted-publisher-configuration-expiry), [GitHub changelog](https://github.blog/changelog/2026-10-02-unvalidated-npm-trusted-publishing-configurations-now-expire/)).
