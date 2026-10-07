@@ -9,6 +9,7 @@ import {
   createBootstrapTarballFromValidatedPack,
   listTarballEntries,
   packValidatedReleaseArtifact,
+  removeBootstrapArtifactTree,
   removePackedArtifactTree,
 } from "./lib/bootstrap-tarball.js";
 
@@ -34,6 +35,60 @@ describe("bootstrap tarball preflight", () => {
     ).toThrow(/fixtures/);
     expect(() => assertBootstrapTarballEntries(["package/.env"])).toThrow(/credentials/);
   });
+
+  it(
+    "default path keeps bootstrap .tgz on disk after createBootstrapTarballFromValidatedPack returns",
+    { timeout: 60_000 },
+    () => {
+      const validatedTarball = runValidatedPack();
+
+      let bootstrapTarball: string | undefined;
+      try {
+        const { tarballPath, entries, manifest } =
+          createBootstrapTarballFromValidatedPack(validatedTarball);
+        bootstrapTarball = tarballPath;
+
+        expect(existsSync(tarballPath)).toBe(true);
+        expect(manifest.version).toBe(BOOTSTRAP_VERSION);
+        expect(tarballPath).toContain("renovate-workflow-bootstrap-artifact-");
+        expect(entries.some((entry) => entry === "package/")).toBe(false);
+        assertBootstrapTarballEntries(entries);
+        assertBootstrapTarballEntries(listTarballEntries(tarballPath));
+      } finally {
+        if (bootstrapTarball) {
+          removeBootstrapArtifactTree(bootstrapTarball);
+        }
+        removePackedArtifactTree(validatedTarball);
+      }
+    }
+  );
+
+  it(
+    "npm run bootstrap:tarball default CLI path prints a .tgz that still exists",
+    { timeout: 60_000 },
+    () => {
+      const validatedTarball = runValidatedPack();
+
+      try {
+        const stdout = execSync(
+          `npm run bootstrap:tarball -- --from-tarball "${validatedTarball}"`,
+          { cwd: REPO_ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
+        );
+        const printedPath = stdout
+          .trim()
+          .split(/\r?\n/)
+          .filter((line) => line.endsWith(".tgz"))
+          .at(-1);
+
+        expect(printedPath).toBeTruthy();
+        expect(existsSync(printedPath!)).toBe(true);
+        assertBootstrapTarballEntries(listTarballEntries(printedPath!));
+        removeBootstrapArtifactTree(printedPath!);
+      } finally {
+        removePackedArtifactTree(validatedTarball);
+      }
+    }
+  );
 
   it(
     "creates a 0.0.1 bootstrap tarball via npm pack (no bare package/ entry)",

@@ -151,11 +151,12 @@ npm run build
 PACK_OUTPUT="$(npm pack 2>/dev/null)"
 TARBALL="$(printf '%s\n' "$PACK_OUTPUT" | grep '\.tgz$' | tail -1)"
 test -n "$TARBALL" && test -f "$TARBALL" || { echo "npm pack did not produce a .tgz" >&2; exit 1; }
-trap 'rm -f "${TARBALL:-}" "${BOOTSTRAP_TGZ:-}"' EXIT
+trap 'rm -f "${TARBALL:-}"; if [ -n "${BOOTSTRAP_TGZ:-}" ]; then rm -rf "$(dirname "$BOOTSTRAP_TGZ")"; fi' EXIT
 
 # --- 3. Disposable bootstrap tarball at 0.0.1 (npm pack in isolated temp dir) ---
 # Repacks only the validated publish surface; asserts no package/, ._* , .git, tests, or credentials.
-# Does not call npm stage publish — inspection only until you run step 4 manually.
+# Default output is a temp artifact directory (extraction/repack workdirs are cleaned up).
+# The maintainer owns BOOTSTRAP_TGZ until deleted (trap above) after stage publish.
 BOOTSTRAP_TGZ="$(npm run bootstrap:tarball -- --from-tarball "$TARBALL" | tail -1)"
 test -n "$BOOTSTRAP_TGZ" && test -f "$BOOTSTRAP_TGZ" || { echo "bootstrap tarball preflight failed" >&2; exit 1; }
 

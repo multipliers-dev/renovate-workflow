@@ -153,10 +153,13 @@ export function createBootstrapTarballFromValidatedPack(
     throw new Error(`validated pack tarball not found: ${absoluteValidated}`);
   }
 
-  const workRoot = mkdtempSync(join(tmpdir(), "renovate-workflow-bootstrap-"));
+  const workRoot = mkdtempSync(join(tmpdir(), "renovate-workflow-bootstrap-work-"));
   const extractDir = join(workRoot, "extract");
   const isolatedPackageDir = join(workRoot, "isolated-package");
-  const outputDir = options.outputDir ? resolve(options.outputDir) : workRoot;
+  // Default: durable artifact dir outside workRoot so the returned .tgz survives work cleanup.
+  const artifactDir = options.outputDir
+    ? resolve(options.outputDir)
+    : mkdtempSync(join(tmpdir(), "renovate-workflow-bootstrap-artifact-"));
 
   try {
     mkdirSync(extractDir, { recursive: true });
@@ -181,7 +184,7 @@ export function createBootstrapTarballFromValidatedPack(
     const packDir = join(workRoot, "packed");
     const packedPath = packDirectoryToDestination(isolatedPackageDir, packDir);
     const packedName = basename(packedPath);
-    const finalPath = join(outputDir, packedName);
+    const finalPath = join(artifactDir, packedName);
 
     copyFileSync(packedPath, finalPath);
 
@@ -209,6 +212,11 @@ export function packValidatedReleaseArtifact(repoRoot: string): string {
 }
 
 export function removePackedArtifactTree(tarballPath: string): void {
+  rmSync(dirname(tarballPath), { recursive: true, force: true });
+}
+
+/** Remove the temp directory that owns a default-path bootstrap tarball. */
+export function removeBootstrapArtifactTree(tarballPath: string): void {
   rmSync(dirname(tarballPath), { recursive: true, force: true });
 }
 

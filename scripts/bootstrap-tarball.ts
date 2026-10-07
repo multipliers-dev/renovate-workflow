@@ -7,6 +7,8 @@
  *   tsx scripts/bootstrap-tarball.ts [--from-tarball path.tgz] [--output-dir dir]
  *
  * Prints the absolute path to the bootstrap .tgz on stdout (last line).
+ * Default output lands in a temp artifact directory (not inside extraction workdirs);
+ * the maintainer owns that path until deleted after `npm stage publish`.
  */
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
