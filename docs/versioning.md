@@ -168,9 +168,9 @@ Remain **`0.x`** until the CLI contract stabilizes.
 "renovate:freshness-poll": "renovate-workflow freshness-poll"
 ```
 
-### Git + legacy `tsx` script (interim)
+### Git + legacy `tsx` script (fallback)
 
-Some consumers still pin the git tarball and invoke `scripts/` via `tsx` during migration:
+Legacy adopters may still pin the git tarball and invoke packaged `scripts/` via `tsx`. Codenames and Portfolio have migrated to the npm package above; this path remains until the published tarball drops `scripts/`:
 
 ```json
 "renovate-workflow": "github:multipliers-dev/renovate-workflow"

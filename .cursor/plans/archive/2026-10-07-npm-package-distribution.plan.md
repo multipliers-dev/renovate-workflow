@@ -28,12 +28,35 @@ todos:
     status: completed
   - id: plan-closure
     content: "Docs-only PR: # Shipped note, archive plan, finalize adoption docs; record legacy-scripts-cleanup follow-up"
-    status: pending
+    status: completed
   - id: legacy-scripts-cleanup
     content: "Follow-up PR (after both consumer migrations): remove scripts/ from package files allowlist; npm tarball ships dist/ + CLI only"
     status: pending
 isProject: false
 ---
+
+# Shipped
+
+npm package distribution plan completed 2026-10-07.
+
+| Slice | Outcome |
+| --- | --- |
+| **plan-review** | Staged plan merged as [multipliers-dev/renovate-workflow#40](https://github.com/multipliers-dev/renovate-workflow/pull/40). |
+| **package-cli** | Compiled CLI boundary, transition `files` allowlist, dual-path tests. Merged as [multipliers-dev/renovate-workflow#41](https://github.com/multipliers-dev/renovate-workflow/pull/41). |
+| **release-infrastructure** | Publish-only `release.yml`, dry-run CI, adoption/versioning docs. Merged as [multipliers-dev/renovate-workflow#42](https://github.com/multipliers-dev/renovate-workflow/pull/42); Trusted Publishing/OIDC in [#44](https://github.com/multipliers-dev/renovate-workflow/pull/44). |
+| **version-bump-0.3.0** | Scoped rename, `0.3.0` manifest bump, publish readiness. Merged as [multipliers-dev/renovate-workflow#43](https://github.com/multipliers-dev/renovate-workflow/pull/43). |
+| **first-release** | `@multipliers-dev/renovate-workflow@0.3.0` on npm via OIDC; `v0.3.0` tag and GitHub Release. Bootstrap archived in [`docs/archive/trusted-publishing-bootstrap-0.3.0.md`](../../docs/archive/trusted-publishing-bootstrap-0.3.0.md). |
+| **consumer-migrate-codenames** | npm dep + compiled CLI in codenames-ai-guesser. Merged as [multipliers-dev/codenames-ai-guesser#625](https://github.com/multipliers-dev/codenames-ai-guesser/pull/625). |
+| **consumer-migrate-portfolio** | npm dep + compiled CLI in portfolio. Merged as [mastermichaelt/portfolio#28](https://github.com/mastermichaelt/portfolio/pull/28). |
+| **plan-closure** | Docs-only archive (this PR). |
+
+**Required follow-up:**
+
+- **`legacy-scripts-cleanup`** — remove `scripts/` from `package.json` `files`; npm tarball ships `dist/` + CLI only. Prerequisites met (both consumers on npm CLI). Do **not** defer once a maintainer is ready — the transitional `scripts/` surface is no longer needed by Codenames or Portfolio.
+
+**Deferred (out of scope for this plan):**
+
+- **`e2e-babysit-codenames`** — manual `/renovate-loop --babysit` gate on codenames; can run opportunistically when an open Renovate PR is available.
 
 # Versioned npm package / CLI distribution for renovate-workflow
 
