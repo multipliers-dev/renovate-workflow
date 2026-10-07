@@ -2,7 +2,7 @@
 
 Install the **Cursor plugin** from this repository for skills, agent docs, templates, and runbook. Add a small **npm devDependency** (or interim **git** install) on the same repo when you need executable helpers (`/renovate-loop --babysit`, freshness poll). Keep **repo-specific facts** local — no vendoring the full tree.
 
-**Distribution status:** the `@multipliers-dev` npm org exists; the target package is **`@multipliers-dev/renovate-workflow`**. First registry release is **`0.3.0`** (after the version-bump PR merges). Until then, use the git devDependency below. Plugin and npm share one repository version — see [versioning.md](versioning.md#unified-version-policy).
+**Distribution status:** **`@multipliers-dev/renovate-workflow`** is published on npm (current release **`0.3.0`**). Prefer the npm devDependency below; git install remains supported during consumer migration. Plugin and npm share one repository version — see [versioning.md](versioning.md#unified-version-policy).
 
 ---
 
