@@ -119,21 +119,13 @@ Stage a **bootstrap version other than `0.3.0`** so the `0.3.0` semver slot stay
 
 **0. npm CLI preflight (required — Node version alone is insufficient)**
 
-Staged publishing requires **npm CLI ≥ 11.15.0** ([staged publishing docs](https://docs.npmjs.com/staged-publishing/)). A new enough Node does not guarantee `npm stage` exists (bundled npm may be older).
+Staged publishing requires **npm CLI ≥ 11.15.0** ([staged publishing docs](https://docs.npmjs.com/staged-publishing/)). A new enough Node does not guarantee `npm stage` exists (bundled npm may be older). Run this **before** bootstrap:
 
 ```bash
-set -euo pipefail
-NPM_MIN="11.15.0"
-NPM_VERSION="$(npm --version)"
-if [ "$(printf '%s\n' "$NPM_MIN" "$NPM_VERSION" | sort -V | head -1)" != "$NPM_MIN" ]; then
-  echo "npm >= ${NPM_MIN} required for npm stage (got ${NPM_VERSION}). Upgrade npm, not just Node." >&2
-  exit 1
-fi
-if ! npm stage --help >/dev/null 2>&1; then
-  echo "npm stage command not available (npm ${NPM_VERSION}). Install npm >= ${NPM_MIN}." >&2
-  exit 1
-fi
+sh scripts/npm-stage-cli-preflight.sh
 ```
+
+The script checks `npm --version` against `11.15.0` and verifies `npm stage --help` succeeds.
 
 **1. Bootstrap (one-time, local)**
 
@@ -141,6 +133,8 @@ From a clean checkout of the merged `0.3.0` commit on `main` (Node **≥ 22.14.0
 
 ```bash
 set -euo pipefail
+
+sh scripts/npm-stage-cli-preflight.sh
 
 # --- 1. Validate canonical checkout at 0.3.0 (unchanged throughout) ---
 test -z "$(git status --porcelain)" || { echo "working tree not clean" >&2; exit 1; }
