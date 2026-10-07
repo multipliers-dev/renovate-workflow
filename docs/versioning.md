@@ -111,21 +111,68 @@ Choose **one** bootstrap path before configuring the Trusted Publisher and dispa
 
 Uses [staged publishing](https://docs.npmjs.com/staged-publishing): staging a **new** scoped package also creates a public `0.0.0-stage` placeholder so the package exists on npm. `npm stage publish` does **not** require 2FA.
 
-Stage a **bootstrap version other than `0.3.0`** so the `0.3.0` semver slot stays free for `release.yml`. The `0.0.1` version is **disposable local state only** — never commit it.
+Stage a **bootstrap version other than `0.3.0`** so the `0.3.0` semver slot stays free for `release.yml`. The `0.0.1` version exists **only** in a disposable bootstrap artifact — never in the canonical checkout.
+
+**Why not mutate the checkout?** `npm stage publish` from a directory runs the same pack path as `npm publish` (`libnpmpack`), which invokes `prepack` → `npm test`. This repository enforces release invariants at `0.3.0` (`validate-plugin-structure`, `pack-manifest` tests). Changing `package.json` to `0.0.1` in the checkout therefore fails safely before any registry mutation. Do **not** weaken those tests or use `--ignore-scripts` to evade them.
+
+**`npm stage publish` package-spec (verified):** per [`npm stage publish`](https://docs.npmjs.com/cli/v12/commands/npm-stage/#npm-stage-publish), the command accepts a `<package-spec>` like `npm publish` — a **directory** or a **`.tgz` tarball**. Directory publishes run lifecycle scripts (`prepublishOnly`, then `prepack` during pack). **Tarball publishes do not run lifecycle scripts** (same rule as [`npm publish`](https://docs.npmjs.com/cli/v12/commands/npm-publish/)). For bootstrap, build and validate the real `0.3.0` artifact in the checkout, then stage a **modified tarball** at `0.0.1`.
+
+**0. npm CLI preflight (required — Node version alone is insufficient)**
+
+Staged publishing requires **npm CLI ≥ 11.15.0** ([staged publishing docs](https://docs.npmjs.com/staged-publishing/)). A new enough Node does not guarantee `npm stage` exists (bundled npm may be older). Run this **before** bootstrap:
+
+```bash
+sh scripts/npm-stage-cli-preflight.sh
+```
+
+The script checks `npm --version` against `11.15.0` and verifies `npm stage --help` succeeds.
 
 **1. Bootstrap (one-time, local)**
 
-From a checkout of the merged `0.3.0` commit on `main`, with npm **≥ 11.15.0** and Node **≥ 22.14.0**:
+From a clean checkout of the merged `0.3.0` commit on `main` (Node **≥ 22.14.0**, npm preflight above):
 
 ```bash
-npm ci && npm test && npm run typecheck && npm run build
+set -euo pipefail
 
-# Disposable local manifest only — do not commit
-npm pkg set version=0.0.1
-npm stage publish --access public
+sh scripts/npm-stage-cli-preflight.sh
 
-# Restore tracked files from git (do not rely on another npm pkg set)
-git checkout -- package.json
+# --- 1. Validate canonical checkout at 0.3.0 (unchanged throughout) ---
+test -z "$(git status --porcelain)" || { echo "working tree not clean" >&2; exit 1; }
+node -e 'const p=require("./package.json"); if (p.version !== "0.3.0") { console.error(`Expected package version 0.3.0, got ${p.version}`); process.exit(1) }'
+
+npm ci
+npm test
+npm run typecheck
+npm run build
+
+# --- 2. Pack verified 0.3.0 publish artifact (prepack re-runs build + test) ---
+# prepack runs tests on stdout; parse the .tgz line instead of npm pack --silent
+PACK_OUTPUT="$(npm pack 2>/dev/null)"
+TARBALL="$(printf '%s\n' "$PACK_OUTPUT" | grep '\.tgz$' | tail -1)"
+test -n "$TARBALL" && test -f "$TARBALL" || { echo "npm pack did not produce a .tgz" >&2; exit 1; }
+PACK_WORK="$(mktemp -d)"
+REPACK_DIR="$(mktemp -d)"
+trap 'rm -rf "$PACK_WORK" "$REPACK_DIR"; rm -f "${TARBALL:-}" "${BOOTSTRAP_TGZ:-}"' EXIT
+
+tar -xzf "$TARBALL" -C "$PACK_WORK"   # npm pack layout: package/...
+rm -f "$TARBALL"
+
+# --- 3. Disposable bootstrap copy: only packed publish surface, version 0.0.1 ---
+# Contents match package.json "files" (dist/, README.md, legacy scripts paths) plus package.json.
+# Not copied: .git, tests, src/, plugin manifests, credentials, CI, or other repo-only files.
+mkdir "$REPACK_DIR/package"
+cp -a "$PACK_WORK/package/." "$REPACK_DIR/package/"
+npm pkg set version=0.0.1 --prefix "$REPACK_DIR/package"
+
+BOOTSTRAP_TGZ="$(mktemp -t renovate-workflow-bootstrap).tgz"
+tar -czf "$BOOTSTRAP_TGZ" -C "$REPACK_DIR" package
+
+# --- 4. Stage disposable 0.0.1 tarball (no lifecycle scripts on tarball publish) ---
+npm stage publish "$BOOTSTRAP_TGZ" --access public
+
+# --- 5. Confirm canonical checkout still 0.3.0 and clean ---
+test -z "$(git status --porcelain)" || { echo "bootstrap must not modify the checkout" >&2; exit 1; }
+node -e 'const p=require("./package.json"); if (p.version !== "0.3.0") { console.error(`Expected package version to remain 0.3.0, got ${p.version}`); process.exit(1) }'
 
 # Record the bootstrap stage id for post-release cleanup
 npm stage list @multipliers-dev/renovate-workflow
@@ -139,7 +186,7 @@ Confirm the checkout matches the committed release manifest:
 
 ```bash
 test -z "$(git status --porcelain)" || { echo "working tree not clean" >&2; exit 1; }
-test "$(jq -r '.version' package.json)" = "0.3.0" || { echo "package.json version must be 0.3.0" >&2; exit 1; }
+node -e 'const p=require("./package.json"); if (p.version !== "0.3.0") { console.error(`Expected package version 0.3.0, got ${p.version}`); process.exit(1) }'
 ```
 
 **3. Configure Trusted Publisher** (below) **within 48 hours** of creating it — unvalidated configurations expire ([npm docs](https://docs.npmjs.com/trusted-publishers/#trusted-publisher-configuration-expiry), [GitHub changelog](https://github.blog/changelog/2026-10-02-unvalidated-npm-trusted-publishing-configurations-now-expire/)).
