@@ -168,15 +168,7 @@ Remain **`0.x`** until the CLI contract stabilizes.
 "renovate:freshness-poll": "renovate-workflow freshness-poll"
 ```
 
-### Git + legacy `tsx` script (compatibility only)
-
-The legacy git + `tsx` path remains temporarily available for compatibility. All known consumers (Codenames and Portfolio) have migrated to the npm package; [`legacy-scripts-cleanup`](../.cursor/plans/archive/2026-10-07-npm-package-distribution.plan.md) will remove this fallback from the published tarball.
-
-```json
-"renovate-workflow": "github:multipliers-dev/renovate-workflow"
-```
-
-Pin to a tag for reproducible installs: `github:multipliers-dev/renovate-workflow#v0.3.0`.
+The published npm tarball ships `dist/` and the compiled CLI only. Git installs are not a supported consumer path for executable helpers — use the npm package above.
 
 See [adopt.md](adopt.md) and [distribution-discovery.md](distribution-discovery.md).
 

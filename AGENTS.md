@@ -20,9 +20,9 @@ Portable Renovate merge ladder — authoritative implementation for consumer rep
 | --- | --- |
 | **This repo (dev/CI)** | `npm run renovate:freshness-poll` → `tsx scripts/renovate-freshness-poll.ts` (source) |
 | **Packed-artifact test** | `npm pack` + temp install exercises compiled `renovate-workflow` bin |
-| **External consumers (after npm migration)** | `renovate-workflow freshness-poll` from published package |
+| **External consumers** | `renovate-workflow freshness-poll` from published package |
 
-Git-installed consumers still use `tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts` until migration; `scripts/` is a **temporary legacy compatibility surface** in the npm/git tarball, not the stable API.
+The published npm tarball ships `dist/` and the compiled CLI only — `scripts/` is dev/CI source in this repo, not part of the installable package.
 
 ## Renovate workflow
 

@@ -19,16 +19,7 @@
   },
   "files": [
     "dist",
-    "README.md",
-    "scripts/renovate-freshness-poll.ts",
-    "scripts/lib",
-    "!scripts/**/*.test.ts",
-    "!scripts/fixtures",
-    "!scripts/cli.ts",
-    "!scripts/check-agent-plugins-spec-drift.ts",
-    "!scripts/tsconfig.json",
-    "!scripts/tsconfig.build.json",
-    "!scripts/*.sh"
+    "README.md"
   ],
   "scripts": {
     "dev": "tsx watch src/index.ts",

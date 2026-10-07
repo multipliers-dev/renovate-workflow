@@ -31,7 +31,7 @@ todos:
     status: completed
   - id: legacy-scripts-cleanup
     content: "Follow-up PR (after both consumer migrations): remove scripts/ from package files allowlist; npm tarball ships dist/ + CLI only"
-    status: pending
+    status: completed
 isProject: false
 ---
 
@@ -48,11 +48,8 @@ npm package distribution plan completed 2026-10-07.
 | **first-release** | `@multipliers-dev/renovate-workflow@0.3.0` on npm via OIDC; `v0.3.0` tag and GitHub Release. Bootstrap archived in [`docs/archive/trusted-publishing-bootstrap-0.3.0.md`](../../docs/archive/trusted-publishing-bootstrap-0.3.0.md). |
 | **consumer-migrate-codenames** | npm dep + compiled CLI in codenames-ai-guesser. Merged as [multipliers-dev/codenames-ai-guesser#625](https://github.com/multipliers-dev/codenames-ai-guesser/pull/625). |
 | **consumer-migrate-portfolio** | npm dep + compiled CLI in portfolio. Merged as [mastermichaelt/portfolio#28](https://github.com/mastermichaelt/portfolio/pull/28). |
-| **plan-closure** | Docs-only archive (this PR). |
-
-**Required follow-up:**
-
-- **`legacy-scripts-cleanup`** — remove `scripts/` from `package.json` `files`; npm tarball ships `dist/` + CLI only. All known consumers (Codenames and Portfolio) have migrated; the git + `tsx` path remains only as a temporary compatibility surface in the published tarball. Cleanup is deliberately deferred — a real Portfolio Renovate cycle is the preferred acceptance check before removing it.
+| **plan-closure** | Docs-only archive. Merged as [multipliers-dev/renovate-workflow#50](https://github.com/multipliers-dev/renovate-workflow/pull/50). |
+| **legacy-scripts-cleanup** | Narrowed `package.json` `files` to `dist/` + `README.md`; removed legacy git+tsx adoption path from docs; pack tests assert `scripts/` excluded. |
 
 **Deferred (out of scope for this plan):**
 

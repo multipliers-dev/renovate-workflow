@@ -1,5 +1,5 @@
 import { execSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -60,28 +60,6 @@ function installPackedArtifactOnly(tarballPath: string): string {
   return installDir;
 }
 
-function installLegacyConsumerPackage(tarballPath: string): string {
-  const consumerDir = mkdtempSync(join(tmpdir(), "renovate-workflow-legacy-consumer-"));
-  writeFileSync(
-    join(consumerDir, "package.json"),
-    JSON.stringify(
-      {
-        name: "legacy-consumer-smoke",
-        private: true,
-        type: "module",
-        devDependencies: {
-          "@multipliers-dev/renovate-workflow": `file:${tarballPath}`,
-          tsx: "^4.23.15",
-        },
-      },
-      null,
-      2
-    )
-  );
-  execSync("npm install", { cwd: consumerDir, stdio: "pipe" });
-  return consumerDir;
-}
-
 function expectHelpOutput(status: number | null, stderr: string, stdout: string): void {
   expect(status).toBe(0);
   const output = `${stdout}${stderr}`;
@@ -90,7 +68,7 @@ function expectHelpOutput(status: number | null, stderr: string, stdout: string)
 }
 
 describe("npm pack manifest", () => {
-  it("release manifest ships scoped name 0.3.0, dist, legacy scripts paths, and README", () => {
+  it("release manifest ships scoped name 0.3.0, dist, and README only", () => {
     const { tarballPath, manifest, entries } = runPack();
 
     expect(manifest.name).toBe("@multipliers-dev/renovate-workflow");
@@ -98,13 +76,11 @@ describe("npm pack manifest", () => {
 
     const normalized = entries.map((entry) => entry.replace(/^package\//, ""));
     expect(normalized.some((entry) => entry.startsWith("dist/cli.js"))).toBe(true);
-    expect(normalized).toContain("scripts/renovate-freshness-poll.ts");
-    expect(normalized).toContain("scripts/lib/renovate-freshness-poll.ts");
     expect(normalized).toContain("README.md");
+    expect(normalized.some((entry) => entry.startsWith("scripts/"))).toBe(false);
     expect(normalized.some((entry) => entry.startsWith("skills/"))).toBe(false);
     expect(normalized.some((entry) => entry.startsWith(".agents/"))).toBe(false);
     expect(normalized.some((entry) => entry.endsWith(".test.ts"))).toBe(false);
-    expect(normalized.some((entry) => entry.startsWith("scripts/fixtures/"))).toBe(false);
 
     removePackTree(tarballPath);
   });
@@ -127,40 +103,4 @@ describe("npm pack manifest", () => {
       rmSync(installDir, { recursive: true, force: true });
     }
   });
-
-  it(
-    "legacy consumer package layout runs tsx on packaged scripts/renovate-freshness-poll.ts --help",
-    { timeout: 120_000 },
-    () => {
-      const { tarballPath } = runPack();
-      const consumerDir = installLegacyConsumerPackage(tarballPath);
-
-      try {
-        const tsxPath = join(consumerDir, "node_modules", ".bin", "tsx");
-        const legacyScript = join(
-          consumerDir,
-          "node_modules",
-          "@multipliers-dev",
-          "renovate-workflow",
-          "scripts",
-          "renovate-freshness-poll.ts"
-        );
-        expect(existsSync(tsxPath)).toBe(true);
-        expect(readFileSync(legacyScript, "utf8")).toContain("parseRenovateFreshnessPollArgs");
-
-        const { status, stderr, stdout } = spawnSync(
-          tsxPath,
-          [
-            "node_modules/@multipliers-dev/renovate-workflow/scripts/renovate-freshness-poll.ts",
-            "--help",
-          ],
-          { cwd: consumerDir, encoding: "utf8" }
-        );
-        expectHelpOutput(status, stderr, stdout);
-      } finally {
-        removePackTree(tarballPath);
-        rmSync(consumerDir, { recursive: true, force: true });
-      }
-    }
-  );
 });
