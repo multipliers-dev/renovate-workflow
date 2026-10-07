@@ -12,16 +12,32 @@
   },
   "homepage": "https://github.com/multipliers-dev/renovate-workflow#readme",
   "type": "module",
+  "bin": {
+    "renovate-workflow": "./dist/cli.js"
+  },
+  "engines": {
+    "node": ">=22.22.1"
+  },
   "files": [
-    "scripts",
-    "docs",
-    ".agents"
+    "dist",
+    "README.md",
+    "scripts/renovate-freshness-poll.ts",
+    "scripts/lib",
+    "!scripts/**/*.test.ts",
+    "!scripts/fixtures",
+    "!scripts/cli.ts",
+    "!scripts/check-agent-plugins-spec-drift.ts",
+    "!scripts/tsconfig.json",
+    "!scripts/tsconfig.build.json",
+    "!scripts/*.sh"
   ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
+    "build": "tsc -p scripts/tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit -p scripts/tsconfig.json",
+    "prepack": "npm run build && npm test",
     "prepare": "sh scripts/prepare-git-hooks.sh",
     "verify:git-hooks": "sh scripts/verify-git-hooks.sh",
     "renovate:freshness-poll": "tsx scripts/renovate-freshness-poll.ts",

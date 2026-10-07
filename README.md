@@ -81,6 +81,8 @@ Add a git devDependency and script in your consumer `package.json`:
 }
 ```
 
+The `scripts/` tree in the installable package is a **temporary legacy surface** for git consumers running `tsx` on TypeScript sources. The stable npm API is the compiled `renovate-workflow` CLI (`renovate-workflow freshness-poll`); see [`.cursor/plans/2026-10-07-npm-package-distribution.plan.md`](.cursor/plans/2026-10-07-npm-package-distribution.plan.md).
+
 See [examples/adopt-stub/package.json](examples/adopt-stub/package.json) and [docs/adopt.md](docs/adopt.md).
 
 ---
@@ -119,6 +121,7 @@ Also:
 npm install
 npm test
 npm run typecheck
+npm run build
 ```
 
 ---

@@ -1,0 +1,7 @@
+scripts/**/*.test.ts
+scripts/fixtures/
+scripts/tsconfig.json
+scripts/tsconfig.build.json
+scripts/cli.ts
+scripts/check-agent-plugins-spec-drift.ts
+scripts/*.sh

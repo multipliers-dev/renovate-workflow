@@ -10,8 +10,19 @@ Portable Renovate merge ladder — authoritative implementation for consumer rep
 | `npm start` | Run TypeScript once (`tsx src/index.ts`) |
 | `npm test` | Vitest — guardrails, stop-causes, investigation eligibility, freshness poll |
 | `npm run typecheck` | TypeScript `tsc --noEmit` (root + scripts) |
+| `npm run build` | Compile CLI + runtime to `dist/` (`tsc -p scripts/tsconfig.build.json`) |
 | `npm run verify:git-hooks` | Confirm Husky shims are runnable in this checkout |
-| `npx tsx scripts/renovate-freshness-poll.ts --help` | Freshness poll CLI (babysit helper) |
+| `npm run renovate:freshness-poll -- --help` | Freshness poll CLI from source (this repo; no self npm dep) |
+
+### npm package boundary (dev vs consumer)
+
+| Context | Invocation |
+| --- | --- |
+| **This repo (dev/CI)** | `npm run renovate:freshness-poll` → `tsx scripts/renovate-freshness-poll.ts` (source) |
+| **Packed-artifact test** | `npm pack` + temp install exercises compiled `renovate-workflow` bin |
+| **External consumers (after npm migration)** | `renovate-workflow freshness-poll` from published package |
+
+Git-installed consumers still use `tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts` until migration; `scripts/` is a **temporary legacy compatibility surface** in the npm/git tarball, not the stable API.
 
 ## Renovate workflow
 
