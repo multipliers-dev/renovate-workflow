@@ -25,7 +25,7 @@ todos:
     status: pending
   - id: consumer-migrate-portfolio
     content: "PR (portfolio): npm dep, CLI script, policy entry, fixture updates"
-    status: pending
+    status: completed
   - id: plan-closure
     content: "Docs-only PR: # Shipped note, archive plan, finalize adoption docs; record legacy-scripts-cleanup follow-up"
     status: pending
