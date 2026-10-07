@@ -1,5 +1,5 @@
 import { execSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -30,13 +30,35 @@ function runPack(): PackResult {
   return { tarballPath, manifest, entries };
 }
 
-function installPackedTarball(tarballPath: string): string {
+function installPackedArtifactOnly(tarballPath: string): string {
   const installDir = mkdtempSync(join(tmpdir(), "renovate-workflow-pack-"));
   execSync(`npm install --no-save "${tarballPath}"`, {
     cwd: installDir,
     stdio: "pipe",
   });
   return installDir;
+}
+
+function installLegacyConsumerPackage(tarballPath: string): string {
+  const consumerDir = mkdtempSync(join(tmpdir(), "renovate-workflow-legacy-consumer-"));
+  writeFileSync(
+    join(consumerDir, "package.json"),
+    JSON.stringify(
+      {
+        name: "legacy-consumer-smoke",
+        private: true,
+        type: "module",
+        devDependencies: {
+          "renovate-workflow": `file:${tarballPath}`,
+          tsx: "^4.23.15",
+        },
+      },
+      null,
+      2
+    )
+  );
+  execSync("npm install", { cwd: consumerDir, stdio: "pipe" });
+  return consumerDir;
 }
 
 function expectHelpOutput(status: number | null, stderr: string, stdout: string): void {
@@ -47,7 +69,7 @@ function expectHelpOutput(status: number | null, stderr: string, stdout: string)
 }
 
 describe("npm pack manifest", () => {
-  it("ships dist, legacy scripts runtime paths, README, and unscoped name", () => {
+  it("ships dist, legacy scripts compatibility paths, README, and unscoped name", () => {
     const { tarballPath, manifest, entries } = runPack();
 
     expect(manifest.name).toBe("renovate-workflow");
@@ -65,9 +87,9 @@ describe("npm pack manifest", () => {
     rmSync(tarballPath, { force: true });
   });
 
-  it("packed CLI runs freshness-poll --help", () => {
+  it("packed artifact CLI runs renovate-workflow freshness-poll --help", () => {
     const { tarballPath } = runPack();
-    const installDir = installPackedTarball(tarballPath);
+    const installDir = installPackedArtifactOnly(tarballPath);
 
     try {
       const binPath = join(installDir, "node_modules", ".bin", "renovate-workflow");
@@ -84,30 +106,31 @@ describe("npm pack manifest", () => {
     }
   });
 
-  it("legacy git-layout path runs tsx scripts/renovate-freshness-poll.ts --help", () => {
+  it("legacy consumer package layout runs tsx on packaged scripts/renovate-freshness-poll.ts --help", () => {
     const { tarballPath } = runPack();
-    const installDir = installPackedTarball(tarballPath);
-    const tsxPath = join(REPO_ROOT, "node_modules", ".bin", "tsx");
+    const consumerDir = installLegacyConsumerPackage(tarballPath);
 
     try {
+      const tsxPath = join(consumerDir, "node_modules", ".bin", "tsx");
       const legacyScript = join(
-        installDir,
+        consumerDir,
         "node_modules",
         "renovate-workflow",
         "scripts",
         "renovate-freshness-poll.ts"
       );
-      expect(readFileSync(legacyScript, "utf8")).toContain("parseRenovateFreshnessPollArgs");
       expect(existsSync(tsxPath)).toBe(true);
+      expect(readFileSync(legacyScript, "utf8")).toContain("parseRenovateFreshnessPollArgs");
 
-      const { status, stderr, stdout } = spawnSync(tsxPath, [legacyScript, "--help"], {
-        cwd: installDir,
-        encoding: "utf8",
-      });
+      const { status, stderr, stdout } = spawnSync(
+        tsxPath,
+        ["node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts", "--help"],
+        { cwd: consumerDir, encoding: "utf8" }
+      );
       expectHelpOutput(status, stderr, stdout);
     } finally {
       rmSync(tarballPath, { force: true });
-      rmSync(installDir, { recursive: true, force: true });
+      rmSync(consumerDir, { recursive: true, force: true });
     }
   });
 });
