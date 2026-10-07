@@ -6,7 +6,7 @@ todos:
     content: Plan-only PR — commit .cursor/plans/2026-10-07-npm-package-distribution.plan.md; no implementation
     status: completed
   - id: package-cli
-    content: "PR: tsc build, renovate-workflow bin, narrow files, pack + smoke tests, skill boundary fix (no publish)"
+    content: "PR: rename package.json to @multipliers-dev/renovate-workflow, tsc build, bin, narrow files, pack + smoke tests, skill boundary fix (no publish)"
     status: pending
   - id: release-infrastructure
     content: "PR: workflow_dispatch release.yml (publish-only, no version bump), dry-run CI, update versioning/adopt/distribution docs (no publish)"
@@ -88,6 +88,8 @@ flowchart TB
 
 **Pre-publish checklist (first-release slice):** confirm `multipliers-dev` npm org ownership, create `NPM_TOKEN` secret, verify no conflicting published package.
 
+**`package-cli` slice:** rename `package.json` `"name"` from `renovate-workflow` to `@multipliers-dev/renovate-workflow` as part of establishing the npm package contract. Plugin manifest `name` fields (`plugin.json`, `.cursor-plugin/plugin.json`) stay `renovate-workflow` — only the npm `package.json` name changes.
+
 Do **not** publish during plan-review, package-cli, or release-infrastructure slices.
 
 ### 2. What ships in the npm tarball (narrow consumer package)
@@ -117,13 +119,18 @@ Replace current `files` with an explicit allowlist, e.g. `["dist", "README.md"]`
 - Add root script: `"build": "tsc -p scripts/tsconfig.build.json"`
 - Add `"prepack": "npm run build && npm test"` (local `npm pack` / publish gate)
 
-**CLI shape:**
+**Package contract (`package-cli` slice):**
 
 ```json
-"bin": {
-  "renovate-workflow": "./dist/cli.js"
+{
+  "name": "@multipliers-dev/renovate-workflow",
+  "bin": {
+    "renovate-workflow": "./dist/cli.js"
+  }
 }
 ```
+
+Rename from today's unscoped `renovate-workflow` in `package.json` only; do not defer the rename to `version-bump-0.3.0`.
 
 `dist/cli.js` dispatches subcommands:
 
@@ -260,7 +267,7 @@ Require `workflow_dispatch` confirmation input (e.g. type `publish` and the exac
 
 Add to CI (package-cli slice):
 
-1. **`npm pack --dry-run` / manifest test** — assert tarball contains only `dist/**`, `package.json`, `README.md`; assert excludes `skills/`, `scripts/`, `*.test.ts`
+1. **`npm pack --dry-run` / manifest test** — assert tarball contains only `dist/**`, `package.json`, `README.md`; assert excludes `skills/`, `scripts/`, `*.test.ts`; assert packed `package.json` `"name"` is `@multipliers-dev/renovate-workflow`
 2. **Consumer smoke fixture** — e.g. [`scripts/fixtures/npm-consumer/`](scripts/fixtures/npm-consumer/):
    ```bash
    npm pack
@@ -360,9 +367,9 @@ sequenceDiagram
 | --- | --- |
 | **Authority** | Open PR only |
 | **Prerequisites** | plan-review merged |
-| **Scope** | Build pipeline, `bin`, narrow `files`, remove `private` prep (can keep until publish), pack + smoke tests, skill boundary fix |
-| **Expected files** | `package.json`, `scripts/tsconfig.build.json`, `scripts/cli.ts` (new dispatcher), `dist/` gitignored, `.gitignore`, `scripts/pack-manifest.test.ts` (or similar), `scripts/fixtures/npm-consumer/`, `skills/renovate-classifier/SKILL.md`, `skills/renovate-loop/verification.md`, `AGENTS.md`, [`examples/adopt-stub/package.json`](examples/adopt-stub/package.json) (target shape, still git dep OK) |
-| **Verification** | `npm test`, `npm run typecheck`, `npm run build`, pack manifest test, smoke `--help` |
+| **Scope** | Rename `package.json` `"name"` to `@multipliers-dev/renovate-workflow`; build pipeline, `bin`, narrow `files` (keep `"private": true` until `version-bump-0.3.0`), pack + smoke tests, skill boundary fix |
+| **Expected files** | `package.json` (scoped `name`, `bin`, `files`, `engines`; version unchanged at `0.2.0`), `scripts/tsconfig.build.json`, `scripts/cli.ts` (new dispatcher), `dist/` gitignored, `.gitignore`, `scripts/pack-manifest.test.ts` (or similar), `scripts/fixtures/npm-consumer/`, `skills/renovate-classifier/SKILL.md`, `skills/renovate-loop/verification.md`, `AGENTS.md`, [`examples/adopt-stub/package.json`](examples/adopt-stub/package.json) (target scoped dep shape; version pin deferred) |
+| **Verification** | `npm test`, `npm run typecheck`, `npm run build`, pack manifest test (includes scoped `name` assertion), smoke `--help`; `npm pack` tarball `package.json` reports `"name": "@multipliers-dev/renovate-workflow"` |
 | **External effects** | None |
 | **Rollback** | Revert PR |
 
@@ -384,9 +391,9 @@ sequenceDiagram
 | --- | --- |
 | **Authority** | Open PR only |
 | **Prerequisites** | release-infrastructure merged |
-| **Scope** | Normal reviewed PR bumping `package.json`, `plugin.json`, `.cursor-plugin/plugin.json` from `0.2.0` → `0.3.0`; remove `"private": true` when ready for publish; changelog/release-notes draft optional in PR description |
-| **Expected files** | Three aligned manifests, optional `CHANGELOG.md` entry |
-| **Verification** | `npm test` (validate-plugin-structure passes); **no** npm publish; **no** git tag |
+| **Scope** | Version and publish-readiness only: bump `package.json`, `plugin.json`, `.cursor-plugin/plugin.json` from `0.2.0` → `0.3.0`; remove `"private": true` from `package.json`. **Does not** rename the npm package (scoped `name` lands in `package-cli`). Changelog/release-notes draft optional in PR description |
+| **Expected files** | Three aligned manifest version fields, `package.json` `"private": false` (or removed), optional `CHANGELOG.md` entry |
+| **Verification** | `npm test` (validate-plugin-structure passes); `package.json` still `"name": "@multipliers-dev/renovate-workflow"`; **no** npm publish; **no** git tag |
 | **External effects** | None |
 | **Rollback** | Revert PR before first-release |
 
@@ -489,9 +496,9 @@ Authority: Open PR only — implement and open the PR; do not merge.
 
 Topology: start from latest origin/main; branch represents only this slice; PR base must be main.
 
-Deliverables: compiled dist build, renovate-workflow bin with freshness-poll subcommand, narrow package files, pack manifest + consumer smoke tests, skill/doc boundary fixes per plan. Mark package-cli completed in plan frontmatter in this PR.
+Deliverables: rename package.json name to @multipliers-dev/renovate-workflow; compiled dist build; renovate-workflow bin with freshness-poll subcommand; narrow package files; pack manifest + consumer smoke tests (assert packed name is scoped); skill/doc boundary fixes per plan. Mark package-cli completed in plan frontmatter in this PR.
 
-Verification: npm test, npm run typecheck, npm run build, pack tests pass, renovate-workflow freshness-poll --help works from packed artifact fixture.
+Verification: npm test, npm run typecheck, npm run build, pack tests pass (including scoped package name in tarball), renovate-workflow freshness-poll --help works from packed artifact fixture.
 ```
 
 ### release-infrastructure
@@ -521,9 +528,9 @@ Authority: Open PR only — implement and open the PR; do not merge.
 
 Topology: start from latest origin/main; branch represents only this slice; PR base must be main.
 
-Deliverables: reviewed PR bumping package.json, plugin.json, and .cursor-plugin/plugin.json to 0.3.0 together; remove private when ready. Mark version-bump-0.3.0 completed in plan frontmatter in this PR.
+Deliverables: reviewed PR bumping package.json, plugin.json, and .cursor-plugin/plugin.json to 0.3.0 together; remove private from package.json. Do not rename the npm package (already scoped in package-cli). Mark version-bump-0.3.0 completed in plan frontmatter in this PR.
 
-Verification: npm test passes (validate-plugin-structure); no npm publish; no git tag.
+Verification: npm test passes (validate-plugin-structure); package.json name remains @multipliers-dev/renovate-workflow; no npm publish; no git tag.
 ```
 
 ### first-release
