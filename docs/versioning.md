@@ -90,24 +90,49 @@ After a successful release, verify with `npm audit signatures` in a consumer che
 - [Trusted publishing](https://docs.npmjs.com/trusted-publishers/) — configure via **package settings on npmjs.com** (package must exist).
 - [`npm trust` prerequisites](https://docs.npmjs.com/cli/v11/commands/npm-trust/) — “Package must exist: The package you're configuring must already exist on the npm registry.”
 
-Therefore **`0.3.0` can be the first OIDC-published version**, but only after a **one-time bootstrap** creates the package name on npm without publishing `0.3.0` via a long-lived token in CI.
+Therefore **`0.3.0` can be the first OIDC-published version**, but only after a **one-time bootstrap** creates the package name on npm without occupying the `0.3.0` semver slot in the staging index.
+
+### Staged vs direct publish (same version)
+
+Per [`npm stage` key behaviors](https://docs.npmjs.com/cli/v12/commands/npm-stage/):
+
+- **Staged and published versions share one semver uniqueness index** — you **cannot** `npm publish` a version that already exists as a **staged** version for that package.
+- **Other versions can still publish** while unrelated staged versions are pending.
+- **Direct `npm publish` does not supersede** a pending staged submission for the same version.
+- To free a semver slot occupied by staging, run **`npm stage reject <stage-id>`** (requires account 2FA) before direct publish.
+
+**Implication for bootstrap:** running `npm stage publish` from a checkout whose `package.json` reads **`0.3.0`** stages **`0.3.0`** and **blocks** the OIDC `release.yml` publish of `0.3.0` until that staged submission is rejected. Leaving it pending is **not** sufficient.
 
 ### Trusted Publishing bootstrap
 
 Choose **one** bootstrap path before configuring the Trusted Publisher and dispatching `release.yml` for `0.3.0`.
 
-#### Option A — Staged placeholder (recommended; keeps `0.3.0` for OIDC)
+#### Option A — Staged placeholder with disposable version (recommended; keeps `0.3.0` for OIDC)
 
-Uses [staged publishing](https://docs.npmjs.com/staged-publishing): staging a **new** scoped package creates a public `0.0.0-stage` placeholder so the package exists on npm. `npm stage publish` does **not** require 2FA.
+Uses [staged publishing](https://docs.npmjs.com/staged-publishing): staging a **new** scoped package also creates a public `0.0.0-stage` placeholder so the package exists on npm. `npm stage publish` does **not** require 2FA.
+
+Stage a **bootstrap version other than `0.3.0`** so the `0.3.0` semver slot stays free for `release.yml`.
 
 1. From a checkout of the merged `0.3.0` commit on `main`, with npm **≥ 11.15.0** and Node **≥ 22.14.0**:
    ```bash
    npm ci && npm test && npm run typecheck && npm run build
-   npm stage publish
+   npm pkg set version=0.0.1          # local only — do not commit
+   npm stage publish --access public
+   npm pkg set version=0.3.0          # restore local manifest; release workflow reads committed 0.3.0
    ```
-2. **Do not** approve the staged `0.3.0` submission — leave it pending. The registry now has the package shell (`0.0.0-stage` placeholder).
+2. **Do not** approve the staged `0.0.1` submission. A pending `0.0.1` does **not** block OIDC publish of `0.3.0`. The registry now has the package shell (`0.0.0-stage` placeholder).
 3. Configure the Trusted Publisher (below) **within 48 hours** of creating it — unvalidated configurations expire ([npm docs](https://docs.npmjs.com/trusted-publishers/#trusted-publisher-configuration-expiry), [GitHub changelog](https://github.blog/changelog/2026-10-02-unvalidated-npm-trusted-publishing-configurations-now-expire/)).
 4. Dispatch `release.yml` with confirmation `publish 0.3.0` — OIDC publishes the real `0.3.0` artifact.
+
+Optional hygiene after `0.3.0` is live: `npm stage reject <stage-id>` for the pending `0.0.1` bootstrap submission (2FA).
+
+#### Option A′ — Staged `0.3.0`, then explicit reject (only if you already staged `0.3.0`)
+
+If `npm stage publish` was already run with `version: 0.3.0` in `package.json`:
+
+1. `npm stage list @multipliers-dev/renovate-workflow` — note the staged `0.3.0` stage id.
+2. `npm stage reject <stage-id>` — **required** before OIDC publish; requires account 2FA ([`npm stage reject`](https://docs.npmjs.com/cli/v12/commands/npm-stage/#npm-stage-reject)).
+3. Configure Trusted Publisher, then dispatch `release.yml` for `0.3.0`.
 
 #### Option B — One-time interactive `npm publish` (simplest; `0.3.0` is not OIDC-published)
 
@@ -121,7 +146,7 @@ From [Creating and publishing scoped public packages](https://docs.npmjs.com/cre
 2. Configure Trusted Publishing for **future** releases (`0.3.1+`).
 3. **Do not** re-dispatch `release.yml` for `0.3.0` — the version is already on the registry. Create the git tag and GitHub Release manually at the published commit if needed.
 
-For this project’s intentional two-step model, **Option A** preserves `0.3.0` as the first version published through `release.yml` with OIDC.
+For this project’s intentional two-step model, **Option A** preserves `0.3.0` as the first version published through `release.yml` with OIDC. **Do not** run `npm stage publish` with `version: 0.3.0` unless you will follow **Option A′** and reject that staged submission before dispatch.
 
 ### npm Trusted Publisher settings
 

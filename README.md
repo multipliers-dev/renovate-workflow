@@ -127,7 +127,7 @@ This repository uses a **two-step release** — version bump in a reviewed PR, t
 **Before first release:**
 
 1. `version-bump-0.3.0` merged on `main` (scoped name, `0.3.0`, not private).
-2. **One-time registry bootstrap** — the package must exist on npm before Trusted Publishing can be configured. Recommended: `npm stage publish` locally to create the `0.0.0-stage` placeholder; do **not** approve the staged submission. See [docs/versioning.md § Trusted Publishing bootstrap](docs/versioning.md#trusted-publishing-bootstrap).
+2. **One-time registry bootstrap** — the package must exist on npm before Trusted Publishing can be configured. Recommended: `npm stage publish` with a **disposable bootstrap version** (e.g. `0.0.1` via `npm pkg set`, not committed) to create the `0.0.0-stage` placeholder **without** occupying the `0.3.0` semver slot. **Do not** stage `0.3.0` and leave it pending — that blocks OIDC publish of `0.3.0`. See [docs/versioning.md § Trusted Publishing bootstrap](docs/versioning.md#trusted-publishing-bootstrap).
 3. Configure npm **Trusted Publisher** for workflow `release.yml` (`multipliers-dev/renovate-workflow`). See [docs/versioning.md § npm Trusted Publisher settings](docs/versioning.md#npm-trusted-publisher-settings).
 4. Complete the first OIDC publish within **48 hours** of creating the Trusted Publisher configuration.
 

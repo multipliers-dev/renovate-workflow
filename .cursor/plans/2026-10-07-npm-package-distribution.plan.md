@@ -97,7 +97,8 @@ Official npm docs now recommend [Trusted Publishing](https://docs.npmjs.com/trus
 | Question | Answer |
 | --- | --- |
 | Configure Trusted Publisher **before** first publish? | **No** — package must already exist on the registry ([`npm trust` prerequisites](https://docs.npmjs.com/cli/v11/commands/npm-trust/), [trusted publishing setup](https://docs.npmjs.com/trusted-publishers/)) |
-| Can `0.3.0` be the first **OIDC**-published version? | **Yes**, after a one-time bootstrap that creates the package on npm **without** publishing `0.3.0` via token/2FA (recommended: `npm stage publish` → `0.0.0-stage` placeholder; do not approve staged `0.3.0`) |
+| Can `0.3.0` be the first **OIDC**-published version? | **Yes**, after bootstrap creates the package on npm **without occupying the `0.3.0` semver slot** (recommended: `npm stage publish` with disposable `0.0.1` via local `npm pkg set`, not committed → `0.0.0-stage` placeholder; do not approve staged bootstrap version) |
+| Pending staged `0.3.0` vs OIDC `npm publish` of `0.3.0`? | **Blocks direct publish** — staged and published versions share one semver index ([`npm stage` key behaviors](https://docs.npmjs.com/cli/v12/commands/npm-stage/)). Direct publish does **not** supersede; must `npm stage reject` (2FA) first, or never stage `0.3.0` |
 | Provenance on OIDC publish? | **Automatic** for public package + public GitHub repo — no `--provenance` flag ([trusted publishing § Automatic provenance](https://docs.npmjs.com/trusted-publishers/#automatic-provenance-generation)) |
 | Trusted Publisher expiry | New configuration must complete its **first successful publish within 48 hours** or it expires ([npm docs](https://docs.npmjs.com/trusted-publishers/#trusted-publisher-configuration-expiry)) |
 
@@ -501,7 +502,7 @@ sequenceDiagram
 | | |
 | --- | --- |
 | **Authority** | **Merge granted** (or explicit human maintainer dispatch outside agent) — external side effect |
-| **Prerequisites** | `@multipliers-dev` npm org (done); `version-bump-0.3.0` merged; **one-time registry bootstrap** completed (`npm stage publish` recommended — creates package without approving staged `0.3.0`); npm **Trusted Publisher** configured for `release.yml` within 48h of creation; `main` HEAD manifests read `0.3.0` with scoped `"name"` |
+| **Prerequisites** | `@multipliers-dev` npm org (done); `version-bump-0.3.0` merged; **one-time registry bootstrap** completed (`npm stage publish` with disposable bootstrap version e.g. `0.0.1` — must **not** leave staged `0.3.0` pending; see versioning.md § Staged vs direct publish); npm **Trusted Publisher** configured for `release.yml` within 48h of creation; `main` HEAD manifests read `0.3.0` with scoped `"name"` |
 | **Scope** | Manually dispatch `release.yml` against current `main` — OIDC `npm publish --access public` (provenance automatic), tag `v0.3.0`, create GitHub Release for the **exact merged commit** (no version/name edits in workflow). Published tarball still includes transition `scripts/` surface |
 | **Verification** | All §8 safeguards pass; `npm view @multipliers-dev/renovate-workflow version` → `0.3.0`; temp `npm i` + `renovate-workflow freshness-poll --help`; remote tag `v0.3.0` points at published commit SHA (recorded in release notes). Git consumers not yet migrated may still need pinned pre-scoped commits — see §11 rollback |
 | **External effects** | **npm publish**, git tag, GitHub Release |
