@@ -12,13 +12,26 @@ type PackResult = {
   entries: string[];
 };
 
+function parsePackedTarballName(packOutput: string): string {
+  const tarballName = packOutput
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.endsWith(".tgz"))
+    .at(-1);
+  if (!tarballName) {
+    throw new Error(`npm pack did not report a .tgz filename:\n${packOutput}`);
+  }
+  return tarballName;
+}
+
 function runPack(): PackResult {
   execSync("npm run build", { cwd: REPO_ROOT, stdio: "pipe" });
-  const tarballName = execSync("npm pack --ignore-scripts", {
+  const packOutput = execSync("npm pack --ignore-scripts --loglevel error", {
     cwd: REPO_ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
-  }).trim();
+  });
+  const tarballName = parsePackedTarballName(packOutput);
   const tarballPath = join(REPO_ROOT, tarballName);
   const entries = execSync(`tar -tzf "${tarballPath}"`, { encoding: "utf8" })
     .trim()
@@ -87,7 +100,7 @@ describe("npm pack manifest", () => {
     rmSync(tarballPath, { force: true });
   });
 
-  it("packed artifact CLI runs renovate-workflow freshness-poll --help", () => {
+  it("packed artifact CLI runs renovate-workflow freshness-poll --help", { timeout: 60_000 }, () => {
     const { tarballPath } = runPack();
     const installDir = installPackedArtifactOnly(tarballPath);
 
@@ -106,7 +119,10 @@ describe("npm pack manifest", () => {
     }
   });
 
-  it("legacy consumer package layout runs tsx on packaged scripts/renovate-freshness-poll.ts --help", () => {
+  it(
+    "legacy consumer package layout runs tsx on packaged scripts/renovate-freshness-poll.ts --help",
+    { timeout: 120_000 },
+    () => {
     const { tarballPath } = runPack();
     const consumerDir = installLegacyConsumerPackage(tarballPath);
 
@@ -132,5 +148,6 @@ describe("npm pack manifest", () => {
       rmSync(tarballPath, { force: true });
       rmSync(consumerDir, { recursive: true, force: true });
     }
-  });
+    }
+  );
 });
