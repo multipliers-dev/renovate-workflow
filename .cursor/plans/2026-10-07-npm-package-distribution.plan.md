@@ -378,15 +378,25 @@ Require `workflow_dispatch` confirmation input (e.g. type `publish` and the exac
 
 After migration, Renovate sees a normal npm devDependency.
 
-**Policy classification:** add explicit package entry in [`.agents/renovate-policy.yml`](.agents/renovate-policy.yml) (both consumers), e.g.:
+**Policy classification:** add an explicit entry under `packages.low_risk_tooling` in each consumer [`.agents/renovate-policy.yml`](.agents/renovate-policy.yml) (Codenames and Portfolio), e.g.:
 
 ```yaml
 packages:
-  - name: "@multipliers-dev/renovate-workflow"
-    risk_class: high_touch_tooling
+  low_risk_tooling:
+    - "@multipliers-dev/renovate-workflow"
 ```
 
-**Do not** enable silent auto-merge for this package — it controls dependency-governance execution. `high_touch_tooling` routes to investigation/human review per existing ladder semantics. Remove `renovate-workflow` from unlisted examples once explicitly listed.
+Remove `renovate-workflow` from unlisted examples once explicitly listed.
+
+**Trust boundary (package-specific — not a general rubric change):** classify `@multipliers-dev/renovate-workflow` as **low-risk tooling**, not `high_touch_tooling`, because:
+
+- We own and publish this package ourselves.
+- Releases already cross a reviewed version-bump boundary plus explicit manual Trusted Publishing/OIDC release.
+- Consumers use `^0.3.0`, which does not admit `0.4.0`, so the next breaking `0.x` minor release is not silently consumed.
+- Requiring high-touch review for every compatible consumer update would largely duplicate review already performed at the package release boundary.
+- Governance and security sensitivity for this artifact should primarily be enforced at the **package release boundary**, not by treating our own reviewed artifact as an untrusted third-party dependency.
+
+This does **not** change the semantics of `low_risk_tooling` or `high_touch_tooling` for other packages — only this scoped, versioned first-party npm package.
 
 **Renovate bot config:** no special grouping required; default individual PRs are appropriate.
 
