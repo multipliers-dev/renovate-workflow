@@ -2,7 +2,7 @@
 
 Install the **Cursor plugin** from this repository for skills, agent docs, templates, and runbook. Add the **`@multipliers-dev/renovate-workflow`** npm devDependency when you need executable helpers (`/renovate-loop --babysit`, freshness poll). Keep **repo-specific facts** local — no vendoring the full tree.
 
-**Distribution status:** **`@multipliers-dev/renovate-workflow@0.3.0`** is the install path for the compiled CLI. All known consumers (Codenames and Portfolio) use the published npm package; new adopters should use the npm devDependency below. The legacy git + `tsx` path remains temporarily available for compatibility in the published tarball until [`legacy-scripts-cleanup`](../.cursor/plans/archive/2026-10-07-npm-package-distribution.plan.md) removes it. Plugin and npm share one repository version — see [versioning.md](versioning.md#unified-version-policy).
+**Distribution status:** **`@multipliers-dev/renovate-workflow@0.3.0`** is the install path for the compiled CLI. All known consumers (Codenames and Portfolio) use the published npm package; new adopters should use the npm devDependency below. The published tarball ships `dist/` and the CLI only — not `scripts/`. Plugin and npm share one repository version — see [versioning.md](versioning.md#unified-version-policy).
 
 ---
 
@@ -20,7 +20,7 @@ Install the **Cursor plugin** from this repository for skills, agent docs, templ
 | --- | --- | --- |
 | **Agent Plugins 1.0 (portable)** | Root [`plugin.json`](../plugin.json), [`skills/`](../skills/) | Cross-client manifest and fixed skill discovery location; no `skills` / `agents` keys on the portable manifest |
 | **Cursor extension** | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json), [`.cursor-plugin/plugin.json`](../.cursor-plugin/plugin.json), [`.agents/`](../.agents/) | Marketplace install, agent prompts, explicit `"skills": "./skills"` and `"agents": "./.agents"` |
-| **npm / git scripts** | [`scripts/`](../scripts/), [`package.json`](../package.json) `files` | Freshness poll CLI and guardrail helpers via devDependency — not plugin components |
+| **npm package** | [`dist/`](../dist/) (built at pack time), [`package.json`](../package.json) `bin` | Compiled freshness poll CLI via devDependency — not plugin components |
 | **Repo dev only (not distributed)** | [`.cursor/hooks.json`](../.cursor/hooks.json), [`.cursor/environment.json`](../.cursor/environment.json) | This checkout's hook stack and Cloud VM lifecycle — not consumer plugin surface |
 | **Consumer-local** | `.agents/renovate-policy.yml`, `renovate.json`, `.github/workflows/renovate.yml` | Per-repo facts and bot config |
 
@@ -153,30 +153,6 @@ Add when you need `/renovate-loop --babysit` or the freshness poll CLI. Plain `/
 
 No `tsx` required — the published package ships a compiled CLI.
 
-### Legacy (git install — compatibility only)
-
-Not for new adopters. The git + `tsx` path remains temporarily available in the published tarball until `legacy-scripts-cleanup` removes packaged `scripts/`. All known consumers have migrated to the npm package above.
-
-```json
-{
-  "devDependencies": {
-    "renovate-workflow": "github:multipliers-dev/renovate-workflow",
-    "tsx": "^4.23.12"
-  },
-  "scripts": {
-    "renovate:freshness-poll": "tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts"
-  }
-}
-```
-
-Then `npm install`.
-
-If you have not already created `.agents/renovate-policy.yml`, you can alternatively copy the template from the git dependency:
-
-```bash
-cp node_modules/renovate-workflow/.agents/renovate-policy.template.yml .agents/renovate-policy.yml
-```
-
 For `/renovate-loop --babysit`, the classifier shells out to the freshness poll CLI:
 
 ```bash
@@ -207,7 +183,7 @@ Do **not** vendor into the consumer repo:
 - `docs/renovate-workflow.md`
 - `scripts/lib/*`, fixtures, or tests
 
-Those ship via plugin install + npm git dependency on this same repository.
+Those ship via plugin install; executable helpers ship via the npm package CLI.
 
 For architecture rationale (plugin vs npm vs consumer-local), see [distribution-discovery.md](distribution-discovery.md) — maintainer deep-dive, not required for adoption.
 

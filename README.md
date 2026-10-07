@@ -67,21 +67,18 @@ Success is `queue_empty` or a classification packet. The classifier **never merg
 
 Required for `/renovate-loop --babysit` and the freshness poll CLI. Not required to try the classifier.
 
-Add a git devDependency and script in your consumer `package.json`:
+Add the npm devDependency and script in your consumer `package.json`:
 
 ```json
 {
   "devDependencies": {
-    "renovate-workflow": "github:multipliers-dev/renovate-workflow",
-    "tsx": "^4.23.12"
+    "@multipliers-dev/renovate-workflow": "^0.3.0"
   },
   "scripts": {
-    "renovate:freshness-poll": "tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts"
+    "renovate:freshness-poll": "renovate-workflow freshness-poll"
   }
 }
 ```
-
-The `scripts/` tree in the installable package is a **temporary legacy surface** for git consumers running `tsx` on TypeScript sources. The stable npm API is the compiled `renovate-workflow` CLI (`renovate-workflow freshness-poll`); see [`.cursor/plans/2026-10-07-npm-package-distribution.plan.md`](.cursor/plans/2026-10-07-npm-package-distribution.plan.md).
 
 See [examples/adopt-stub/package.json](examples/adopt-stub/package.json) and [docs/adopt.md](docs/adopt.md).
 

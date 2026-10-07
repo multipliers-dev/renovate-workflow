@@ -15,7 +15,7 @@ Evidence for the minimum local boundary when adopting the Renovate ladder via **
 
 **Unified version policy:** version *V* always means the same repository commit for both channels. Releases are intentional and two-step — version bump in a reviewed PR, then manual [`release.yml`](../.github/workflows/release.yml) dispatch (`npm publish --access public` + `vX.Y.Z` tag + GitHub Release). Merging to `main` never publishes. See [versioning.md](versioning.md).
 
-**Rollout state (2026-10):** `@multipliers-dev/renovate-workflow@0.3.0` is on npm; releases use **Trusted Publishing** (OIDC) via [`release.yml`](../.github/workflows/release.yml). All known consumers (Codenames and Portfolio) use the published npm CLI. The published tarball still includes transitional `scripts/` as a temporary compatibility surface until [`legacy-scripts-cleanup`](../.cursor/plans/archive/2026-10-07-npm-package-distribution.plan.md) narrows the allowlist — see [versioning.md § Consumer install paths](versioning.md#consumer-install-paths).
+**Rollout state (2026-10):** `@multipliers-dev/renovate-workflow@0.3.0` is on npm; releases use **Trusted Publishing** (OIDC) via [`release.yml`](../.github/workflows/release.yml). All known consumers (Codenames and Portfolio) use the published npm CLI. The published tarball ships `dist/` and the compiled CLI only — see [versioning.md § Consumer install paths](versioning.md#consumer-install-paths).
 
 **Precedent:** [Cursor multi-plugin repositories](https://cursor.com/docs/reference/plugins#cursor-multi-plugin-repositories) — a repo can ship `.cursor-plugin/marketplace.json` plus per-plugin `.cursor-plugin/plugin.json`. GitHub import (`/add-plugin <url>` or Customize → Plugins → Add → From GitHub) imports the **marketplace**, then the user installs listed plugins. This repo uses that pattern as a **single-plugin marketplace wrapper** (`"source": "."` → root `.cursor-plugin/plugin.json`). That is a **local/non-team** marketplace import, not Cursor's public marketplace and not an org Team Marketplace catalog.
 
@@ -31,7 +31,7 @@ Evidence for the minimum local boundary when adopting the Renovate ladder via **
 | **Policy template** (`renovate-policy.template.yml`) | **Yes (via plugin)** | Bootstrap only; consumer copies to `.agents/renovate-policy.yml`. |
 | **Agent prompts** (`renovate-maintainer.md`, `renovate-investigator.md`) | **Plugin + skill invoke** | Manifest `"agents": ".agents"`. `@.agents/` in copy/paste blocks resolves from the **consumer workspace**, not plugin cache. **Mitigation:** invoke `/renovate-maintainer` and `/renovate-investigator`. |
 | **Report templates** (`.agents/templates/*.md`) | **Yes (via plugin)** | Reports written under consumer `.agent-runs/renovate/`; template content read from plugin `.agents/templates/` via skill links. |
-| **Executable CLI** (`renovate-workflow freshness-poll`) | **No — `@multipliers-dev/renovate-workflow` npm package** | Skills shell out via consumer `npm run renovate:freshness-poll`. Known consumers use the compiled `bin`. Packaged `scripts/` remains in the tarball temporarily until `legacy-scripts-cleanup`. No script vendoring into consumer repos. |
+| **Executable CLI** (`renovate-workflow freshness-poll`) | **No — `@multipliers-dev/renovate-workflow` npm package** | Skills shell out via consumer `npm run renovate:freshness-poll`. Known consumers use the compiled `bin`. No script vendoring into consumer repos. |
 
 ---
 
@@ -51,9 +51,9 @@ Portable interpretation stays in plugin `.agents/policy-rubric.base.md`.
 
 | Primitive | Path in this repo | Consumer invocation |
 | --- | --- | --- |
-| Freshness poll CLI | `dist/cli.js` (npm); packaged `scripts/` (transitional tarball surface) | `npm run renovate:freshness-poll -- --repo … --pr … --expected-head …` |
-| Babysit core | `scripts/lib/renovate-freshness-poll.ts` | Imported by CLI |
-| Guardrails | `scripts/lib/renovate-guardrails.ts` | Agent follows skill prose; import from `node_modules/renovate-workflow/scripts/lib/…` when shelling out |
+| Freshness poll CLI | `dist/cli.js` (npm package) | `npm run renovate:freshness-poll -- --repo … --pr … --expected-head …` |
+| Babysit core | `scripts/lib/renovate-freshness-poll.ts` (dev source; compiled into `dist/`) | Imported by CLI |
+| Guardrails | `scripts/lib/renovate-guardrails.ts` (dev source) | Agent follows skill prose; not shipped in npm tarball |
 | Stop causes | `scripts/lib/derive-stop-causes.ts` | Classifier § packet emission |
 | Investigation eligibility | `scripts/lib/renovate-investigation-eligibility.ts` | Classifier § handoff (mandatory) |
 | Policy facts | `scripts/lib/renovate-policy-facts.ts` | Classifier + maintainer |
