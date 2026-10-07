@@ -45,6 +45,7 @@ isProject: false
 | Executable surface | [`scripts/renovate-freshness-poll.ts`](scripts/renovate-freshness-poll.ts) + [`scripts/lib/*`](scripts/lib/) |
 | Plugin surface | `skills/`, `.agents/`, docs — git marketplace install only |
 | Tags/releases | None; [`docs/versioning.md`](docs/versioning.md) explicitly forbids npm publish today |
+| npm org / scope | **`@multipliers-dev` created** — org controlled by project owner; target package name `@multipliers-dev/renovate-workflow` is confirmed (not pending validation at first-release) |
 | Live consumers | [codenames-ai-guesser](https://github.com/multipliers-dev/codenames-ai-guesser) (lockfile `0.1.0` commit), [portfolio](https://github.com/mastermichaelt/portfolio) (lockfile `0.2.0` commit) — both unpinned `github:multipliers-dev/renovate-workflow` |
 | Skill mismatch | Classifier skill shells out to `npm exec -- tsx scripts/renovate-freshness-poll.ts` (repo-root path) instead of the consumer script boundary |
 
@@ -75,24 +76,34 @@ flowchart TB
 
 ---
 
+## Completed prerequisites
+
+| Prerequisite | Status |
+| --- | --- |
+| npm org / scope `@multipliers-dev` | **Done** — created and controlled by project owner |
+| Target publish name `@multipliers-dev/renovate-workflow` | **Confirmed** — not a namespace to validate during `first-release` |
+
+**Remaining before `first-release`:** `NPM_TOKEN` GitHub Actions secret; `version-bump-0.3.0` merged with scoped release manifest.
+
+---
+
 ## Design decisions
 
 ### 1. Package name and visibility
 
-**Recommendation:** `@multipliers-dev/renovate-workflow` (scoped public package).
+**Confirmed target:** `@multipliers-dev/renovate-workflow` (scoped public package on the existing `@multipliers-dev` npm org).
 
-| Option | Pros | Cons |
+| Phase | `package.json` `"name"` | Rationale |
 | --- | --- | --- |
-| `@multipliers-dev/renovate-workflow` | Org ownership clear; avoids unscoped name squatting; matches GitHub org | Requires npm org publish access |
-| `renovate-workflow` (unscoped) | Shorter install name | Likely taken or ambiguous; no org binding |
+| `package-cli` + `release-infrastructure` | `renovate-workflow` (unscoped) | Existing git consumers resolve `node_modules/renovate-workflow/scripts/...` |
+| `version-bump-0.3.0` onward | `@multipliers-dev/renovate-workflow` | Scoped publish name; applied atomically with `0.3.0` release prep |
 
-**Pre-publish checklist (first-release slice):** confirm `multipliers-dev` npm org ownership, create `NPM_TOKEN` secret, verify no conflicting published package.
+Plugin manifest `name` fields (`plugin.json`, `.cursor-plugin/plugin.json`) stay `renovate-workflow` throughout.
 
 **Git consumer compatibility (defer scoped rename):** Codenames and Portfolio install this repo as an unpinned git devDependency and invoke `tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts`. Renaming `package.json` `"name"` on `main` before their migration would install under `node_modules/@multipliers-dev/renovate-workflow` and break that path. Therefore:
 
 - **`package-cli` and `release-infrastructure`:** keep `"name": "renovate-workflow"` (unscoped).
 - **`version-bump-0.3.0`:** atomically transition to `"name": "@multipliers-dev/renovate-workflow"` immediately before `first-release`, in the same reviewed PR as the `0.3.0` version bump and `"private": false`.
-- Plugin manifest `name` fields (`plugin.json`, `.cursor-plugin/plugin.json`) stay `renovate-workflow` throughout.
 
 Do **not** publish during plan-review, package-cli, release-infrastructure, or version-bump-0.3.0 slices.
 
@@ -256,6 +267,8 @@ npm publish --access public
 git tag vX.Y.Z at that exact commit + GitHub Release
 ```
 
+`npm publish` reads **name and version from the verified checked-out `package.json`** — do not pass a package coordinate on the CLI. Preflight asserts the scoped name and aligned version before publish.
+
 The release workflow **must not** bump versions, edit manifests, or commit/push back to `main`.
 
 #### Release safeguards (blocking, in workflow)
@@ -400,7 +413,7 @@ sequenceDiagram
 | --- | --- |
 | **Authority** | Open PR only |
 | **Prerequisites** | package-cli merged |
-| **Scope** | `.github/workflows/release.yml` (`workflow_dispatch`, **publish-only** — no version bump, no commit to `main`), all release safeguards from §8, optional `publish-dry-run` CI job on PRs, update [`docs/versioning.md`](docs/versioning.md) + [`docs/adopt.md`](docs/adopt.md) + [`docs/distribution-discovery.md`](docs/distribution-discovery.md) documenting two-step release model and unified version policy |
+| **Scope** | `.github/workflows/release.yml` (`workflow_dispatch`, **publish-only** — `npm publish --access public` from checked-out `package.json`; no version bump, no commit to `main`), all release safeguards from §8, document `NPM_TOKEN` secret requirement for `first-release`, optional `publish-dry-run` CI job on PRs, update [`docs/versioning.md`](docs/versioning.md) + [`docs/adopt.md`](docs/adopt.md) + [`docs/distribution-discovery.md`](docs/distribution-discovery.md) documenting two-step release model, confirmed `@multipliers-dev` scope, and unified version policy |
 | **Expected files** | `.github/workflows/release.yml`, docs above, `README.md` publish section |
 | **Verification** | `npm publish --dry-run` in CI passes; release workflow reads version from manifests only; workflow contains no version-bump or git-commit steps |
 | **External effects** | None |
@@ -423,8 +436,8 @@ sequenceDiagram
 | | |
 | --- | --- |
 | **Authority** | **Merge granted** (or explicit human maintainer dispatch outside agent) — external side effect |
-| **Prerequisites** | `version-bump-0.3.0` merged; `NPM_TOKEN` configured; `main` HEAD manifests read `0.3.0` |
-| **Scope** | Manually dispatch `release.yml` against current `main` — publish, tag `v0.3.0`, create GitHub Release for the **exact merged commit** (no version edits in workflow) |
+| **Prerequisites** | `@multipliers-dev` npm org (done); `version-bump-0.3.0` merged; `NPM_TOKEN` configured in GitHub Actions; `main` HEAD manifests read `0.3.0` with scoped `"name"` |
+| **Scope** | Manually dispatch `release.yml` against current `main` — `npm publish --access public`, tag `v0.3.0`, create GitHub Release for the **exact merged commit** (no version/name edits in workflow) |
 | **Verification** | All §8 safeguards pass; `npm view @multipliers-dev/renovate-workflow version` → `0.3.0`; temp `npm i` + `renovate-workflow freshness-poll --help`; remote tag `v0.3.0` points at published commit SHA (recorded in release notes) |
 | **External effects** | **npm publish**, git tag, GitHub Release |
 | **Rollback** | Forward-fix via new version-bump PR + publish; consumers stay on git dep until migrated |
@@ -533,9 +546,9 @@ Authority: Open PR only — implement and open the PR; do not merge.
 
 Topology: start from latest origin/main; branch represents only this slice; PR base must be main.
 
-Deliverables: workflow_dispatch publish-only release workflow (no version bump, no commit to main), all §8 release safeguards, dry-run CI, docs/versioning.md + docs/adopt.md + docs/distribution-discovery.md updates documenting two-step release and unified npm+plugin version policy. Mark release-infrastructure completed in plan frontmatter in this PR.
+Deliverables: workflow_dispatch publish-only release workflow (npm publish --access public from checked-out package.json; no version bump, no commit to main), all §8 release safeguards, NPM_TOKEN secret documented for first-release, dry-run CI, docs/versioning.md + docs/adopt.md + docs/distribution-discovery.md updates documenting completed @multipliers-dev org, two-step release, and unified npm+plugin version policy. Mark release-infrastructure completed in plan frontmatter in this PR.
 
-Verification: npm publish --dry-run succeeds in CI; release workflow reads version from manifests at HEAD only; workflow contains no version-bump or push-to-main steps.
+Verification: npm publish --dry-run succeeds in CI; release workflow reads name/version from manifests at HEAD only; workflow contains no version-bump or push-to-main steps.
 ```
 
 ### version-bump-0.3.0
@@ -559,9 +572,9 @@ Verification: npm test passes (validate-plugin-structure); npm pack asserts scop
 ```text
 @.cursor/plans/2026-10-07-npm-package-distribution.plan.md
 
-Execute slice first-release only. Prerequisites: version-bump-0.3.0 merged; main HEAD manifests read 0.3.0; NPM_TOKEN configured.
+Execute slice first-release only. Prerequisites: @multipliers-dev npm org (done); version-bump-0.3.0 merged; main HEAD manifests read 0.3.0 with scoped name; NPM_TOKEN configured in GitHub Actions.
 
-Authority: Merge granted — manually dispatch release workflow to publish, tag, and create GitHub Release from the exact merged commit. Do not bump versions in the workflow.
+Authority: Merge granted — manually dispatch release workflow to publish (npm publish --access public), tag, and create GitHub Release from the exact merged commit. Do not bump versions in the workflow.
 
 Topology: release from current origin/main after version-bump-0.3.0 merge.
 
