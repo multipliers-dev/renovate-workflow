@@ -168,9 +168,9 @@ Remain **`0.x`** until the CLI contract stabilizes.
 "renovate:freshness-poll": "renovate-workflow freshness-poll"
 ```
 
-### Git + legacy `tsx` script (fallback)
+### Git + legacy `tsx` script (compatibility only)
 
-Legacy adopters may still pin the git tarball and invoke packaged `scripts/` via `tsx`. Codenames and Portfolio have migrated to the npm package above; this path remains until the published tarball drops `scripts/`:
+The legacy git + `tsx` path remains temporarily available for compatibility. All known consumers (Codenames and Portfolio) have migrated to the npm package; [`legacy-scripts-cleanup`](../.cursor/plans/archive/2026-10-07-npm-package-distribution.plan.md) will remove this fallback from the published tarball.
 
 ```json
 "renovate-workflow": "github:multipliers-dev/renovate-workflow"

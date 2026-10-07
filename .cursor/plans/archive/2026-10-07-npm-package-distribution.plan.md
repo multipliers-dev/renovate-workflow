@@ -52,7 +52,7 @@ npm package distribution plan completed 2026-10-07.
 
 **Required follow-up:**
 
-- **`legacy-scripts-cleanup`** — remove `scripts/` from `package.json` `files`; npm tarball ships `dist/` + CLI only. Prerequisites met (both consumers on npm CLI). Do **not** defer once a maintainer is ready — the transitional `scripts/` surface is no longer needed by Codenames or Portfolio.
+- **`legacy-scripts-cleanup`** — remove `scripts/` from `package.json` `files`; npm tarball ships `dist/` + CLI only. All known consumers (Codenames and Portfolio) have migrated; the git + `tsx` path remains only as a temporary compatibility surface in the published tarball. Cleanup is deliberately deferred — a real Portfolio Renovate cycle is the preferred acceptance check before removing it.
 
 **Deferred (out of scope for this plan):**
 
