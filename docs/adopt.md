@@ -1,8 +1,8 @@
 # Adopting the Renovate ladder in a consumer repo
 
-Install the **Cursor plugin** from this repository for skills, agent docs, templates, and runbook. Add a small **npm devDependency** (or interim **git** install) on the same repo when you need executable helpers (`/renovate-loop --babysit`, freshness poll). Keep **repo-specific facts** local — no vendoring the full tree.
+Install the **Cursor plugin** from this repository for skills, agent docs, templates, and runbook. Add the **`@multipliers-dev/renovate-workflow`** npm devDependency when you need executable helpers (`/renovate-loop --babysit`, freshness poll). Keep **repo-specific facts** local — no vendoring the full tree.
 
-**Distribution status:** **`@multipliers-dev/renovate-workflow`** is published on npm (current release **`0.3.0`**). Prefer the npm devDependency below; git install remains supported during consumer migration. Plugin and npm share one repository version — see [versioning.md](versioning.md#unified-version-policy).
+**Distribution status:** **`@multipliers-dev/renovate-workflow@0.3.0`** is the install path for the compiled CLI. All known consumers (Codenames and Portfolio) use the published npm package; new adopters should use the npm devDependency below. The legacy git + `tsx` path remains temporarily available for compatibility in the published tarball until [`legacy-scripts-cleanup`](../.cursor/plans/archive/2026-10-07-npm-package-distribution.plan.md) removes it. Plugin and npm share one repository version — see [versioning.md](versioning.md#unified-version-policy).
 
 ---
 
@@ -11,7 +11,7 @@ Install the **Cursor plugin** from this repository for skills, agent docs, templ
 | Layer | Source | Consumer action |
 | --- | --- | --- |
 | Skills, runbook, portable rubric, agent prompts, report templates | **This repo as a Cursor plugin** | Import marketplace (step 1), then install the `renovate-workflow` plugin (step 2) |
-| Executable CLI (`renovate-workflow freshness-poll`) | **npm package** (or interim git install) | `devDependencies` when using `--babysit` or the freshness poll CLI (see [Enable loop / babysit helpers](#enable-loop--babysit-helpers)) |
+| Executable CLI (`renovate-workflow freshness-poll`) | **`@multipliers-dev/renovate-workflow` npm package** | `devDependencies` when using `--babysit` or the freshness poll CLI (see [Enable loop / babysit helpers](#enable-loop--babysit-helpers)) |
 | Policy facts, Renovate bot config, CI workflow | **Your repo** | One-time copy + customize |
 
 ### Portable vs Cursor layers (this repo)
@@ -138,7 +138,7 @@ Reports are written per run; never commit them.
 
 Add when you need `/renovate-loop --babysit` or the freshness poll CLI. Plain `/renovate-loop` uses the plugin only. Skip this section if you only use the classifier.
 
-### Target (after `@multipliers-dev/renovate-workflow@0.3.0` is published)
+### Recommended (npm package)
 
 ```json
 {
@@ -153,7 +153,9 @@ Add when you need `/renovate-loop --babysit` or the freshness poll CLI. Plain `/
 
 No `tsx` required — the published package ships a compiled CLI.
 
-### Interim (git install — until consumer migration)
+### Legacy (git install — compatibility only)
+
+Not for new adopters. The git + `tsx` path remains temporarily available in the published tarball until `legacy-scripts-cleanup` removes packaged `scripts/`. All known consumers have migrated to the npm package above.
 
 ```json
 {
@@ -166,8 +168,6 @@ No `tsx` required — the published package ships a compiled CLI.
   }
 }
 ```
-
-The `scripts/` tree in the installable package is a **temporary legacy surface** for git consumers. It is not the stable npm API.
 
 Then `npm install`.
 
