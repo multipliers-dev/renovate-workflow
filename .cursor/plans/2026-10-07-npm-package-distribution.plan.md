@@ -6,7 +6,7 @@ todos:
     content: Plan-only PR — commit .cursor/plans/2026-10-07-npm-package-distribution.plan.md; no implementation
     status: completed
   - id: package-cli
-    content: "PR: tsc build, bin, narrow files, pack + smoke tests, skill boundary fix; keep unscoped renovate-workflow name (no publish)"
+    content: "PR: tsc build, bin, transition files (dist+scripts), dual-path tests, skill fix; keep unscoped name (no publish)"
     status: pending
   - id: release-infrastructure
     content: "PR: workflow_dispatch release.yml (publish-only, no version bump), dry-run CI, update versioning/adopt/distribution docs (no publish)"
@@ -27,7 +27,10 @@ todos:
     content: "PR (portfolio): npm dep, CLI script, policy entry, fixture updates"
     status: pending
   - id: plan-closure
-    content: "Docs-only PR: # Shipped note, archive plan, finalize adoption docs"
+    content: "Docs-only PR: # Shipped note, archive plan, finalize adoption docs; record legacy-scripts-cleanup follow-up"
+    status: pending
+  - id: legacy-scripts-cleanup
+    content: "Follow-up PR (after both consumer migrations): remove scripts/ from package files allowlist; npm tarball ships dist/ + CLI only"
     status: pending
 isProject: false
 ---
@@ -93,36 +96,54 @@ flowchart TB
 
 **Confirmed target:** `@multipliers-dev/renovate-workflow` (scoped public package on the existing `@multipliers-dev` npm org).
 
-| Phase | `package.json` `"name"` | Rationale |
-| --- | --- | --- |
-| `package-cli` + `release-infrastructure` | `renovate-workflow` (unscoped) | Existing git consumers resolve `node_modules/renovate-workflow/scripts/...` |
-| `version-bump-0.3.0` onward | `@multipliers-dev/renovate-workflow` | Scoped publish name; applied atomically with `0.3.0` release prep |
+| Phase | `package.json` `"name"` | `files` / install layout | Rationale |
+| --- | --- | --- | --- |
+| `package-cli` + `release-infrastructure` | `renovate-workflow` (unscoped) | `dist/`, `scripts/` (legacy), `README.md` | Git consumers resolve `node_modules/renovate-workflow/scripts/...` |
+| `version-bump-0.3.0` + `first-release` | `@multipliers-dev/renovate-workflow` | same transition allowlist (still includes `scripts/`) | Scoped publish name; Codenames/Portfolio not migrated yet |
+| `legacy-scripts-cleanup` (after both consumer migrations) | `@multipliers-dev/renovate-workflow` | `dist/`, `README.md` only | Stable npm API — compiled CLI only |
 
 Plugin manifest `name` fields (`plugin.json`, `.cursor-plugin/plugin.json`) stay `renovate-workflow` throughout.
 
-**Git consumer compatibility (defer scoped rename):** Codenames and Portfolio install this repo as an unpinned git devDependency and invoke `tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts`. Renaming `package.json` `"name"` on `main` before their migration would install under `node_modules/@multipliers-dev/renovate-workflow` and break that path. Therefore:
+**Git consumer compatibility (name + package layout):** Codenames and Portfolio install this repo as an unpinned git devDependency and invoke:
 
+```text
+tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts
+```
+
+Keeping `"name": "renovate-workflow"` alone is **not sufficient** — npm/git installs honor `package.json` `files`, so narrowing the allowlist to `dist/` only would omit `scripts/` and break existing consumers on the next lockfile refresh. Therefore:
+
+- **`package-cli` through `first-release`:** include `scripts/` in the `files` allowlist alongside `dist/` and minimal package docs. Document `scripts/` as a **temporary legacy git-consumer compatibility surface**, not part of the intended stable npm API. Do **not** commit `dist/` to git merely to support git consumers; `dist/` is built at pack/publish time via `prepack`. Do **not** repurpose `prepare` into a compatibility build — it remains hook setup only.
 - **`package-cli` and `release-infrastructure`:** keep `"name": "renovate-workflow"` (unscoped).
-- **`version-bump-0.3.0`:** atomically transition to `"name": "@multipliers-dev/renovate-workflow"` immediately before `first-release`, in the same reviewed PR as the `0.3.0` version bump and `"private": false`.
+- **`version-bump-0.3.0`:** atomically transition to `"name": "@multipliers-dev/renovate-workflow"` immediately before `first-release`, in the same reviewed PR as the `0.3.0` version bump and `"private": false` — **still keep `scripts/` in `files`** until both consumers migrate.
+- **Do not remove `scripts/` when Codenames alone migrates** — Portfolio still depends on the legacy path until slice 8.
+- **`legacy-scripts-cleanup`:** remove `scripts/` from the published tarball allowlist only after **both** Codenames and Portfolio have migrated to `@multipliers-dev/renovate-workflow` and the compiled CLI.
 
 Do **not** publish during plan-review, package-cli, release-infrastructure, or version-bump-0.3.0 slices.
 
-### 2. What ships in the npm tarball (narrow consumer package)
+### 2. What ships in the npm tarball
 
-**Ship:**
+**Stable npm API (target — `legacy-scripts-cleanup` slice onward):**
 
 - Compiled `dist/` (CLI + runtime lib)
 - `package.json` with `bin`, `engines`, runtime `dependencies` (`yaml`)
 - Minimal `README.md` (CLI usage only; link to GitHub for plugin adoption)
 
-**Do not ship:**
+**Transition allowlist (`package-cli` through `first-release`):**
+
+```json
+"files": ["dist", "scripts", "README.md"]
+```
+
+- **`scripts/`** — temporary legacy surface so git-installed Codenames/Portfolio can keep executing `tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts` until both consumer migration slices land. **Not** documented as supported npm API; new adopters use the compiled `renovate-workflow` CLI after migration.
+- Exclude test/fixture noise from the shipped tree where practical (e.g. omit `scripts/**/*.test.ts`, `scripts/fixtures/` via `.npmignore` or narrow `files` patterns if needed — implementation detail left to `package-cli`, but the runtime CLI entry + `scripts/lib/` must remain reachable).
+
+**Never ship:**
 
 - `skills/`, `.cursor-plugin/`, `plugin.json` (plugin channel)
-- `scripts/**/*.test.ts`, `scripts/fixtures/` (dev/test only)
 - `.agents/`, full `docs/` (plugin / git clone)
 - `src/` placeholder
 
-Replace current `files` with an explicit allowlist, e.g. `["dist", "README.md"]` (+ `LICENSE` if added).
+**Do not commit `dist/`** to git for git-consumer support — build via `prepack` / release workflow only.
 
 `check-agent-plugins-spec-drift` remains **repository maintainer tooling only** — not part of the consumer npm surface.
 
@@ -132,7 +153,7 @@ Replace current `files` with an explicit allowlist, e.g. `["dist", "README.md"]`
 
 - Add [`scripts/tsconfig.build.json`](scripts/tsconfig.build.json): `noEmit: false`, `outDir: ../dist`, `rootDir: .`, preserve NodeNext ESM `.js` import specifiers
 - Add root script: `"build": "tsc -p scripts/tsconfig.build.json"`
-- Add `"prepack": "npm run build && npm test"` (local `npm pack` / publish gate)
+- Add `"prepack": "npm run build && npm test"` (local `npm pack` / publish gate — builds `dist/` at pack time; does not replace `prepare`, which stays hook setup only)
 
 **Package contract (`package-cli` slice — unscoped name retained for git compatibility):**
 
@@ -294,20 +315,20 @@ Require `workflow_dispatch` confirmation input (e.g. type `publish` and the exac
 
 ### 9. Package validation (artifact tests)
 
-**`package-cli` slice (unscoped name):**
+**`package-cli` slice — dual distribution paths:**
 
-1. **`npm pack --dry-run` / manifest test** — assert tarball contains only `dist/**`, `package.json`, `README.md`; assert excludes `skills/`, `scripts/`, `*.test.ts`; assert packed `package.json` `"name"` is still `renovate-workflow`
-2. **Consumer smoke fixture** — e.g. [`scripts/fixtures/npm-consumer/`](scripts/fixtures/npm-consumer/):
-   ```bash
-   npm pack
-   npm ci --prefix scripts/fixtures/npm-consumer  # installs packed tarball
-   npx renovate-workflow freshness-poll --help
-   ```
-3. **Existing Vitest** — continue testing source modules (`scripts/**/*.test.ts`); add test that built `dist/cli.js` is invocable if feasible without flaking
+1. **Packed CLI path (new npm API):** `npm pack` + temp install + `npx renovate-workflow freshness-poll --help` succeeds; tarball includes `dist/**` and packed `package.json` `"name"` is `renovate-workflow`
+2. **Git-layout compatibility path (legacy):** fixture simulating git/package install layout can execute `tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts --help` (or equivalent path assertion against packed tarball tree) — proves `scripts/renovate-freshness-poll.ts` remains present without committing `dist/` to git
+3. **Pack manifest test** — transition allowlist includes `scripts/` runtime paths; excludes `skills/`, `.agents/`, `*.test.ts` where configured
+4. **Existing Vitest** — continue testing source modules (`scripts/**/*.test.ts`)
 
 **`version-bump-0.3.0` slice (scoped release manifest):**
 
-4. **Release manifest pack test** — after scoped rename + version bump, `npm pack` tarball asserts `"name": "@multipliers-dev/renovate-workflow"` and `"version": "0.3.0"`
+5. **Release manifest pack test** — after scoped rename + version bump, `npm pack` asserts `"name": "@multipliers-dev/renovate-workflow"`, `"version": "0.3.0"`, and **still includes `scripts/`** for remaining git consumers
+
+**`legacy-scripts-cleanup` slice (post-migration):**
+
+6. **Narrow allowlist test** — `npm pack` tarball contains `dist/**` + docs only; **no** `scripts/`; packed CLI smoke still passes
 
 ### 10. Renovate interaction in consumers
 
@@ -329,15 +350,18 @@ packages:
 
 ```text
 1. plan-review (plan-only PR)          ← this slice
-2. package-cli                         ← build, bin, pack tests; keep unscoped name
+2. package-cli                         ← build, bin, transition allowlist (dist + scripts), dual-path tests
 3. release-infrastructure              ← publish-only workflow + safeguards, doc drafts
-4. version-bump-0.3.0                  ← scoped rename + manifests → 0.3.0 + remove private
-5. first-release                       ← dispatch publish/tag/release from merged 0.3.0 commit
-6. consumer-migrate-codenames          ← first external consumer
+4. version-bump-0.3.0                  ← scoped rename + manifests → 0.3.0; keep scripts/ in files
+5. first-release                       ← publish still includes scripts/ (consumers not migrated)
+6. consumer-migrate-codenames          ← first external consumer; do NOT remove scripts/ here
 7. e2e babysit verification            ← /renovate-loop --babysit on codenames
-8. consumer-migrate-portfolio
-9. plan-closure                        ← archive plan, finalize docs
+8. consumer-migrate-portfolio            ← second consumer; scripts/ still required until this merges
+9. plan-closure                        ← archive plan, finalize docs; record legacy-scripts-cleanup
+10. legacy-scripts-cleanup             ← follow-up PR: narrow files to dist/ + docs only
 ```
+
+**Rollout invariant:** `scripts/` stays in the published/git-install package surface from `package-cli` through `first-release` and until **both** consumer migration slices (6 and 8) have merged. Codenames-only migration does not authorize removal.
 
 **Rollback:**
 
@@ -360,7 +384,8 @@ packages:
 | consumer-migrate-codenames | Open PR only | Do not merge. Stop after opening the PR. |
 | e2e-babysit-codenames | Manual verification gate | Report verdict; no PR unless findings require fixes. |
 | consumer-migrate-portfolio | Open PR only | Do not merge. Stop after opening the PR. |
-| plan-closure | Open PR only | Do not merge. Stop after opening the PR. |
+| plan-closure | Open PR only | Do not merge. Stop after opening the PR. Docs-only — record `legacy-scripts-cleanup` follow-up. |
+| legacy-scripts-cleanup | Open PR only | Do not merge. Stop after opening the PR. Only after both consumer migrations merged. |
 
 ```mermaid
 sequenceDiagram
@@ -401,9 +426,9 @@ sequenceDiagram
 | --- | --- |
 | **Authority** | Open PR only |
 | **Prerequisites** | plan-review merged |
-| **Scope** | Build pipeline, `bin`, narrow `files`, pack + smoke tests, skill boundary fix. **Keep** `"name": "renovate-workflow"` and `"private": true` so existing git consumers (`node_modules/renovate-workflow/scripts/...`) remain compatible through `release-infrastructure` |
-| **Expected files** | `package.json` (unscoped `name`, `bin`, `files`, `engines`; version unchanged at `0.2.0`), `scripts/tsconfig.build.json`, `scripts/cli.ts` (new dispatcher), `dist/` gitignored, `.gitignore`, `scripts/pack-manifest.test.ts` (or similar), `scripts/fixtures/npm-consumer/`, `skills/renovate-classifier/SKILL.md`, `skills/renovate-loop/verification.md`, `AGENTS.md`, [`examples/adopt-stub/package.json`](examples/adopt-stub/package.json) (unchanged git dep shape until consumer migration) |
-| **Verification** | `npm test`, `npm run typecheck`, `npm run build`, pack manifest test (asserts unscoped `name`), smoke `--help`; `npm pack` tarball `package.json` reports `"name": "renovate-workflow"` |
+| **Scope** | Build pipeline, `bin`, transition `files` allowlist (`dist`, `scripts`, `README.md`), pack + **dual-path** smoke tests, skill boundary fix. **Keep** `"name": "renovate-workflow"` and `"private": true`. Preserve legacy `scripts/` path for git consumers — unscoped name alone is insufficient. Do not commit `dist/`; do not repurpose `prepare` for compatibility builds |
+| **Expected files** | `package.json` (unscoped `name`, `bin`, transition `files`, `engines`; version `0.2.0`), `scripts/tsconfig.build.json`, `scripts/cli.ts`, `dist/` gitignored, `.npmignore` or narrow patterns as needed, `scripts/pack-manifest.test.ts`, `scripts/fixtures/npm-consumer/` (packed CLI), `scripts/fixtures/git-consumer/` (legacy tsx path), skill/doc updates, [`examples/adopt-stub/package.json`](examples/adopt-stub/package.json) (unchanged git dep until migration) |
+| **Verification** | `npm test`, `npm run typecheck`, `npm run build`; (1) packed CLI `renovate-workflow freshness-poll --help`; (2) git-layout fixture `tsx .../scripts/renovate-freshness-poll.ts --help`; pack manifest includes `scripts/` runtime paths and unscoped `name` |
 | **External effects** | None |
 | **Rollback** | Revert PR |
 
@@ -425,9 +450,9 @@ sequenceDiagram
 | --- | --- |
 | **Authority** | Open PR only |
 | **Prerequisites** | release-infrastructure merged |
-| **Scope** | Atomic release manifest prep immediately before `first-release`: rename `package.json` `"name"` to `@multipliers-dev/renovate-workflow`; bump `package.json`, `plugin.json`, `.cursor-plugin/plugin.json` from `0.2.0` → `0.3.0`; remove `"private": true`. Changelog/release-notes draft optional in PR description |
-| **Expected files** | `package.json` (scoped `name`, version `0.3.0`, no `private`), aligned plugin manifest versions, release-manifest pack test, optional `CHANGELOG.md` entry |
-| **Verification** | `npm test` (validate-plugin-structure passes); `npm pack` tarball asserts `"name": "@multipliers-dev/renovate-workflow"` and `"version": "0.3.0"`; **no** npm publish; **no** git tag |
+| **Scope** | Atomic release manifest prep immediately before `first-release`: rename `package.json` `"name"` to `@multipliers-dev/renovate-workflow`; bump aligned manifests to `0.3.0`; remove `"private": true`; **retain `scripts/` in `files`** (Portfolio/Codenames not migrated yet) |
+| **Expected files** | `package.json` (scoped `name`, version `0.3.0`, transition `files` still includes `scripts/`), aligned plugin manifest versions, release-manifest pack test, optional `CHANGELOG.md` entry |
+| **Verification** | `npm test` (validate-plugin-structure passes); `npm pack` asserts scoped `name`, version `0.3.0`, and `scripts/` still present; dual-path smoke still passes; **no** npm publish; **no** git tag |
 | **External effects** | None |
 | **Rollback** | Revert PR before first-release |
 
@@ -437,8 +462,8 @@ sequenceDiagram
 | --- | --- |
 | **Authority** | **Merge granted** (or explicit human maintainer dispatch outside agent) — external side effect |
 | **Prerequisites** | `@multipliers-dev` npm org (done); `version-bump-0.3.0` merged; `NPM_TOKEN` configured in GitHub Actions; `main` HEAD manifests read `0.3.0` with scoped `"name"` |
-| **Scope** | Manually dispatch `release.yml` against current `main` — `npm publish --access public`, tag `v0.3.0`, create GitHub Release for the **exact merged commit** (no version/name edits in workflow) |
-| **Verification** | All §8 safeguards pass; `npm view @multipliers-dev/renovate-workflow version` → `0.3.0`; temp `npm i` + `renovate-workflow freshness-poll --help`; remote tag `v0.3.0` points at published commit SHA (recorded in release notes) |
+| **Scope** | Manually dispatch `release.yml` against current `main` — `npm publish --access public`, tag `v0.3.0`, create GitHub Release for the **exact merged commit** (no version/name edits in workflow). Published tarball still includes transition `scripts/` surface |
+| **Verification** | All §8 safeguards pass; `npm view @multipliers-dev/renovate-workflow version` → `0.3.0`; temp `npm i` + `renovate-workflow freshness-poll --help`; remote tag `v0.3.0` points at published commit SHA (recorded in release notes). Git consumers not yet migrated may still need pinned pre-scoped commits — see §11 rollback |
 | **External effects** | **npm publish**, git tag, GitHub Release |
 | **Rollback** | Forward-fix via new version-bump PR + publish; consumers stay on git dep until migrated |
 
@@ -448,7 +473,7 @@ sequenceDiagram
 | --- | --- |
 | **Authority** | Open PR only |
 | **Prerequisites** | first-release verified |
-| **Scope** | Replace git dep + tsx script in [`codenames-ai-guesser/package.json`](https://github.com/multipliers-dev/codenames-ai-guesser); update `AGENTS.md`, `README.md`; add explicit `packages:` entry in `.agents/renovate-policy.yml`; remove `tsx` if no longer needed elsewhere |
+| **Scope** | Replace git dep + tsx script in [`codenames-ai-guesser/package.json`](https://github.com/multipliers-dev/codenames-ai-guesser); update `AGENTS.md`, `README.md`; add explicit `packages:` entry in `.agents/renovate-policy.yml`; remove `tsx` if no longer needed elsewhere. **Do not** remove `scripts/` from renovate-workflow package `files` — Portfolio still on legacy path |
 | **Verification** | `npm run renovate:freshness-poll -- --help`; lockfile resolves npm version; existing CI passes |
 | **External effects** | None |
 | **Rollback** | Revert to last known-good published npm version (preferred); see §11 rollback options |
@@ -477,10 +502,22 @@ sequenceDiagram
 
 | | |
 | --- | --- |
-| **Authority** | Open PR only |
-| **Prerequisites** | All implementation slices merged |
-| **Scope** | `# Shipped` note; move plan to `.cursor/plans/archive/`; mark todos completed |
+| **Authority** | Open PR only (docs-only — no `scripts/` removal here) |
+| **Prerequisites** | All implementation slices through `consumer-migrate-portfolio` merged |
+| **Scope** | `# Shipped` note; move plan to `.cursor/plans/archive/`; mark slice todos completed; document `legacy-scripts-cleanup` as required follow-up PR to narrow `files` to stable npm API |
 | **External effects** | None |
+
+### legacy-scripts-cleanup — Narrow published surface (follow-up)
+
+| | |
+| --- | --- |
+| **Authority** | Open PR only |
+| **Prerequisites** | `consumer-migrate-codenames` and `consumer-migrate-portfolio` merged; both consumers on `@multipliers-dev/renovate-workflow` compiled CLI |
+| **Scope** | Remove `scripts/` from `package.json` `files` allowlist; update pack manifest tests; document removal of legacy git+tsx path in `docs/adopt.md` / `docs/versioning.md` |
+| **Expected files** | `package.json` (`files`: `dist`, `README.md` only), pack tests, docs |
+| **Verification** | `npm pack` excludes `scripts/`; packed CLI smoke passes; no remaining consumer depends on `node_modules/renovate-workflow/scripts/...` |
+| **External effects** | None |
+| **Rollback** | Revert PR; restore transition allowlist if a consumer still needs legacy path |
 
 ---
 
@@ -530,9 +567,9 @@ Authority: Open PR only — implement and open the PR; do not merge.
 
 Topology: start from latest origin/main; branch represents only this slice; PR base must be main.
 
-Deliverables: compiled dist build; renovate-workflow bin with freshness-poll subcommand; narrow package files; keep package.json name as renovate-workflow (unscoped) for git consumer compatibility; pack manifest + consumer smoke tests (assert packed name remains unscoped); skill/doc boundary fixes per plan. Mark package-cli completed in plan frontmatter in this PR.
+Deliverables: compiled dist build; renovate-workflow bin with freshness-poll subcommand; transition files allowlist (dist + scripts + README); keep package.json name as renovate-workflow (unscoped); dual-path tests (packed CLI + legacy tsx scripts path); document scripts/ as temporary legacy surface; do not commit dist/ or repurpose prepare. Mark package-cli completed in plan frontmatter in this PR.
 
-Verification: npm test, npm run typecheck, npm run build, pack tests pass (packed name is renovate-workflow), renovate-workflow freshness-poll --help works from packed artifact fixture.
+Verification: npm test, npm run typecheck, npm run build; (1) packed CLI renovate-workflow freshness-poll --help; (2) git-layout fixture tsx .../scripts/renovate-freshness-poll.ts --help; pack manifest includes scripts/ and unscoped name.
 ```
 
 ### release-infrastructure
@@ -562,9 +599,9 @@ Authority: Open PR only — implement and open the PR; do not merge.
 
 Topology: start from latest origin/main; branch represents only this slice; PR base must be main.
 
-Deliverables: atomic release manifest — rename package.json to @multipliers-dev/renovate-workflow; bump package.json, plugin.json, and .cursor-plugin/plugin.json to 0.3.0; remove private; add release-manifest pack test. Mark version-bump-0.3.0 completed in plan frontmatter in this PR.
+Deliverables: atomic release manifest — rename package.json to @multipliers-dev/renovate-workflow; bump aligned manifests to 0.3.0; remove private; retain scripts/ in files; add release-manifest pack test. Mark version-bump-0.3.0 completed in plan frontmatter in this PR.
 
-Verification: npm test passes (validate-plugin-structure); npm pack asserts scoped name and version 0.3.0; no npm publish; no git tag.
+Verification: npm test passes (validate-plugin-structure); npm pack asserts scoped name, version 0.3.0, and scripts/ still present; dual-path smoke still passes; no npm publish; no git tag.
 ```
 
 ### first-release
@@ -594,7 +631,7 @@ Authority: Open PR only — implement and open the PR; do not merge.
 
 Topology: start from latest origin/main; PR base must be main.
 
-Deliverables: replace git renovate-workflow dep with @multipliers-dev/renovate-workflow, update script + AGENTS.md + policy package entry, remove tsx if unused. Mark consumer-migrate-codenames completed in plan frontmatter in the renovate-workflow plan (separate PR in codenames marks its own work).
+Deliverables: replace git renovate-workflow dep with @multipliers-dev/renovate-workflow, update script + AGENTS.md + policy package entry, remove tsx if unused. Do not remove scripts/ from renovate-workflow package files (Portfolio not migrated). Mark consumer-migrate-codenames completed in plan frontmatter in the renovate-workflow plan (separate PR in codenames marks its own work).
 
 Verification: npm run renovate:freshness-poll -- --help; CI passes.
 ```
@@ -626,7 +663,23 @@ Authority: Open PR only — docs-only archive PR; do not merge.
 
 Prerequisites: all implementation slices merged and marked completed.
 
-Deliverables: # Shipped note, move plan to .cursor/plans/archive/2026-10-07-npm-package-distribution.plan.md, mark plan-closure completed.
+Deliverables: # Shipped note, move plan to .cursor/plans/archive/2026-10-07-npm-package-distribution.plan.md, mark plan-closure completed, record legacy-scripts-cleanup as required follow-up (do not remove scripts/ in this docs-only PR).
 
-Verification: all slice todos completed; adopt.md teaches npm package path as primary.
+Verification: all slice todos through consumer-migrate-portfolio completed; adopt.md teaches npm package path as primary; legacy-scripts-cleanup todo remains pending for follow-up implementation PR.
+```
+
+### legacy-scripts-cleanup
+
+```text
+@.cursor/plans/2026-10-07-npm-package-distribution.plan.md
+
+Implement slice legacy-scripts-cleanup only. Prerequisites: consumer-migrate-codenames and consumer-migrate-portfolio merged; both on compiled CLI.
+
+Authority: Open PR only — implement and open the PR; do not merge.
+
+Topology: start from latest origin/main; branch represents only this slice; PR base must be main.
+
+Deliverables: remove scripts/ from package.json files allowlist; narrow to dist + README; update pack tests and adoption docs. Mark legacy-scripts-cleanup completed in plan frontmatter in this PR.
+
+Verification: npm pack excludes scripts/; packed CLI smoke passes; no consumer still depends on node_modules/renovate-workflow/scripts/ path.
 ```
