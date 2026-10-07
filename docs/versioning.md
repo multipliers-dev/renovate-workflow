@@ -115,7 +115,9 @@ Stage a **bootstrap version other than `0.3.0`** so the `0.3.0` semver slot stay
 
 **Why not mutate the checkout?** `npm stage publish` from a directory runs the same pack path as `npm publish` (`libnpmpack`), which invokes `prepack` → `npm test`. This repository enforces release invariants at `0.3.0` (`validate-plugin-structure`, `pack-manifest` tests). Changing `package.json` to `0.0.1` in the checkout therefore fails safely before any registry mutation. Do **not** weaken those tests or use `--ignore-scripts` to evade them.
 
-**`npm stage publish` package-spec (verified):** per [`npm stage publish`](https://docs.npmjs.com/cli/v12/commands/npm-stage/#npm-stage-publish), the command accepts a `<package-spec>` like `npm publish` — a **directory** or a **`.tgz` tarball**. Directory publishes run lifecycle scripts (`prepublishOnly`, then `prepack` during pack). **Tarball publishes do not run lifecycle scripts** (same rule as [`npm publish`](https://docs.npmjs.com/cli/v12/commands/npm-publish/)). For bootstrap, build and validate the real `0.3.0` artifact in the checkout, then stage a **modified tarball** at `0.0.1`.
+**`npm stage publish` package-spec (verified):** per [`npm stage publish`](https://docs.npmjs.com/cli/v12/commands/npm-stage/#npm-stage-publish), the command accepts a `<package-spec>` like `npm publish` — a **directory** or a **`.tgz` tarball**. Directory publishes run lifecycle scripts (`prepublishOnly`, then `prepack` during pack). **Tarball publishes do not run lifecycle scripts** (same rule as [`npm publish`](https://docs.npmjs.com/cli/v12/commands/npm-publish/)). For bootstrap, build and validate the real `0.3.0` artifact in the checkout, then stage a **disposable `0.0.1` tarball** repacked with **`npm pack`** (not manual `tar -czf`).
+
+**Why not `tar -czf` for the bootstrap tarball?** `npm pack` (libnpmpack) emits **file entries only** under `package/...` — it never writes a bare `package/` directory entry. macOS/BSD `tar -czf … package` **does** emit `package/` (path ending in `/`). The npm registry rejects such entries with **`E415 Unsupported Media Type` / `invalid path: package/`**. Manual tar on macOS can also introduce AppleDouble `._*` entries; those are a separate artifact-integrity problem, not the direct cause of `invalid path: package/`, but still forbidden in bootstrap tarballs. Use `npm run bootstrap:tarball` (or `tsx scripts/bootstrap-tarball.ts`) to build and preflight-inspect the disposable tarball before any registry operation.
 
 **0. npm CLI preflight (required — Node version alone is insufficient)**
 
@@ -146,26 +148,17 @@ npm run typecheck
 npm run build
 
 # --- 2. Pack verified 0.3.0 publish artifact (prepack re-runs build + test) ---
-# prepack runs tests on stdout; parse the .tgz line instead of npm pack --silent
 PACK_OUTPUT="$(npm pack 2>/dev/null)"
 TARBALL="$(printf '%s\n' "$PACK_OUTPUT" | grep '\.tgz$' | tail -1)"
 test -n "$TARBALL" && test -f "$TARBALL" || { echo "npm pack did not produce a .tgz" >&2; exit 1; }
-PACK_WORK="$(mktemp -d)"
-REPACK_DIR="$(mktemp -d)"
-trap 'rm -rf "$PACK_WORK" "$REPACK_DIR"; rm -f "${TARBALL:-}" "${BOOTSTRAP_TGZ:-}"' EXIT
+trap 'rm -f "${TARBALL:-}"; if [ -n "${BOOTSTRAP_TGZ:-}" ]; then rm -rf "$(dirname "$BOOTSTRAP_TGZ")"; fi' EXIT
 
-tar -xzf "$TARBALL" -C "$PACK_WORK"   # npm pack layout: package/...
-rm -f "$TARBALL"
-
-# --- 3. Disposable bootstrap copy: only packed publish surface, version 0.0.1 ---
-# Contents match package.json "files" (dist/, README.md, legacy scripts paths) plus package.json.
-# Not copied: .git, tests, src/, plugin manifests, credentials, CI, or other repo-only files.
-mkdir "$REPACK_DIR/package"
-cp -a "$PACK_WORK/package/." "$REPACK_DIR/package/"
-npm pkg set version=0.0.1 --prefix "$REPACK_DIR/package"
-
-BOOTSTRAP_TGZ="$(mktemp -t renovate-workflow-bootstrap).tgz"
-tar -czf "$BOOTSTRAP_TGZ" -C "$REPACK_DIR" package
+# --- 3. Disposable bootstrap tarball at 0.0.1 (npm pack in isolated temp dir) ---
+# Repacks only the validated publish surface; asserts no package/, ._* , .git, tests, or credentials.
+# Default output is a temp artifact directory (extraction/repack workdirs are cleaned up).
+# The maintainer owns BOOTSTRAP_TGZ until deleted (trap above) after stage publish.
+BOOTSTRAP_TGZ="$(npm run bootstrap:tarball -- --from-tarball "$TARBALL" | tail -1)"
+test -n "$BOOTSTRAP_TGZ" && test -f "$BOOTSTRAP_TGZ" || { echo "bootstrap tarball preflight failed" >&2; exit 1; }
 
 # --- 4. Stage disposable 0.0.1 tarball (no lifecycle scripts on tarball publish) ---
 npm stage publish "$BOOTSTRAP_TGZ" --access public

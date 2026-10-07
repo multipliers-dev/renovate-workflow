@@ -1,7 +1,7 @@
 import { execSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const REPO_ROOT = resolve(import.meta.dirname, "..");
@@ -24,15 +24,23 @@ function parsePackedTarballName(packOutput: string): string {
   return tarballName;
 }
 
+function removePackTree(tarballPath: string): void {
+  rmSync(dirname(tarballPath), { recursive: true, force: true });
+}
+
 function runPack(): PackResult {
   execSync("npm run build", { cwd: REPO_ROOT, stdio: "pipe" });
-  const packOutput = execSync("npm pack --ignore-scripts --loglevel error", {
-    cwd: REPO_ROOT,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const packDir = mkdtempSync(join(tmpdir(), "renovate-workflow-pack-manifest-"));
+  const packOutput = execSync(
+    `npm pack --ignore-scripts --loglevel error --pack-destination "${packDir}"`,
+    {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }
+  );
   const tarballName = parsePackedTarballName(packOutput);
-  const tarballPath = join(REPO_ROOT, tarballName);
+  const tarballPath = join(packDir, tarballName);
   const entries = execSync(`tar -tzf "${tarballPath}"`, { encoding: "utf8" })
     .trim()
     .split("\n")
@@ -98,7 +106,7 @@ describe("npm pack manifest", () => {
     expect(normalized.some((entry) => entry.endsWith(".test.ts"))).toBe(false);
     expect(normalized.some((entry) => entry.startsWith("scripts/fixtures/"))).toBe(false);
 
-    rmSync(tarballPath, { force: true });
+    removePackTree(tarballPath);
   });
 
   it("packed artifact CLI runs renovate-workflow freshness-poll --help", { timeout: 60_000 }, () => {
@@ -115,7 +123,7 @@ describe("npm pack manifest", () => {
       });
       expectHelpOutput(status, stderr, stdout);
     } finally {
-      rmSync(tarballPath, { force: true });
+      removePackTree(tarballPath);
       rmSync(installDir, { recursive: true, force: true });
     }
   });
@@ -150,7 +158,7 @@ describe("npm pack manifest", () => {
         );
         expectHelpOutput(status, stderr, stdout);
       } finally {
-        rmSync(tarballPath, { force: true });
+        removePackTree(tarballPath);
         rmSync(consumerDir, { recursive: true, force: true });
       }
     }
