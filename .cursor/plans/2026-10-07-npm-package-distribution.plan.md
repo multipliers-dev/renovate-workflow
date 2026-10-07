@@ -6,13 +6,13 @@ todos:
     content: Plan-only PR — commit .cursor/plans/2026-10-07-npm-package-distribution.plan.md; no implementation
     status: completed
   - id: package-cli
-    content: "PR: rename package.json to @multipliers-dev/renovate-workflow, tsc build, bin, narrow files, pack + smoke tests, skill boundary fix (no publish)"
+    content: "PR: tsc build, bin, narrow files, pack + smoke tests, skill boundary fix; keep unscoped renovate-workflow name (no publish)"
     status: pending
   - id: release-infrastructure
     content: "PR: workflow_dispatch release.yml (publish-only, no version bump), dry-run CI, update versioning/adopt/distribution docs (no publish)"
     status: pending
   - id: version-bump-0.3.0
-    content: "PR: reviewed bump to 0.3.0 across package.json, plugin.json, .cursor-plugin/plugin.json (no publish)"
+    content: "PR: atomic release prep — scoped rename, 0.3.0 manifest bump, remove private, packed-artifact verification (no publish)"
     status: pending
   - id: first-release
     content: "Explicit publish/tag/GitHub Release for 0.3.0 from merged version-bump commit (Merge granted; external side effect)"
@@ -88,9 +88,13 @@ flowchart TB
 
 **Pre-publish checklist (first-release slice):** confirm `multipliers-dev` npm org ownership, create `NPM_TOKEN` secret, verify no conflicting published package.
 
-**`package-cli` slice:** rename `package.json` `"name"` from `renovate-workflow` to `@multipliers-dev/renovate-workflow` as part of establishing the npm package contract. Plugin manifest `name` fields (`plugin.json`, `.cursor-plugin/plugin.json`) stay `renovate-workflow` — only the npm `package.json` name changes.
+**Git consumer compatibility (defer scoped rename):** Codenames and Portfolio install this repo as an unpinned git devDependency and invoke `tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts`. Renaming `package.json` `"name"` on `main` before their migration would install under `node_modules/@multipliers-dev/renovate-workflow` and break that path. Therefore:
 
-Do **not** publish during plan-review, package-cli, or release-infrastructure slices.
+- **`package-cli` and `release-infrastructure`:** keep `"name": "renovate-workflow"` (unscoped).
+- **`version-bump-0.3.0`:** atomically transition to `"name": "@multipliers-dev/renovate-workflow"` immediately before `first-release`, in the same reviewed PR as the `0.3.0` version bump and `"private": false`.
+- Plugin manifest `name` fields (`plugin.json`, `.cursor-plugin/plugin.json`) stay `renovate-workflow` throughout.
+
+Do **not** publish during plan-review, package-cli, release-infrastructure, or version-bump-0.3.0 slices.
 
 ### 2. What ships in the npm tarball (narrow consumer package)
 
@@ -119,18 +123,29 @@ Replace current `files` with an explicit allowlist, e.g. `["dist", "README.md"]`
 - Add root script: `"build": "tsc -p scripts/tsconfig.build.json"`
 - Add `"prepack": "npm run build && npm test"` (local `npm pack` / publish gate)
 
-**Package contract (`package-cli` slice):**
+**Package contract (`package-cli` slice — unscoped name retained for git compatibility):**
 
 ```json
 {
-  "name": "@multipliers-dev/renovate-workflow",
+  "name": "renovate-workflow",
+  "private": true,
   "bin": {
     "renovate-workflow": "./dist/cli.js"
   }
 }
 ```
 
-Rename from today's unscoped `renovate-workflow` in `package.json` only; do not defer the rename to `version-bump-0.3.0`.
+**Release manifest (`version-bump-0.3.0` slice — scoped rename + publish readiness):**
+
+```json
+{
+  "name": "@multipliers-dev/renovate-workflow",
+  "version": "0.3.0",
+  "bin": {
+    "renovate-workflow": "./dist/cli.js"
+  }
+}
+```
 
 `dist/cli.js` dispatches subcommands:
 
@@ -218,6 +233,7 @@ Document in [`AGENTS.md`](AGENTS.md) and [`docs/versioning.md`](docs/versioning.
 consumer-facing changes accumulate on main (no release yet)
         ↓
 reviewed PR bumps package.json + plugin.json + .cursor-plugin/plugin.json to X.Y.Z
+(for 0.3.0: also renames package.json name to @multipliers-dev/renovate-workflow and removes private)
         ↓
 PR merges → main HEAD manifests read X.Y.Z
 ```
@@ -235,7 +251,7 @@ npm ci → npm test → npm run typecheck → npm run build
         ↓
 packed-artifact smoke test (renovate-workflow freshness-poll --help)
         ↓
-npm publish --access public @X.Y.Z (from manifests at checked-out HEAD)
+npm publish --access public
         ↓
 git tag vX.Y.Z at that exact commit + GitHub Release
 ```
@@ -247,8 +263,8 @@ The release workflow **must not** bump versions, edit manifests, or commit/push 
 | Check | Purpose |
 | --- | --- |
 | **Clean, current `main`** | Checkout `main`; working tree clean; `HEAD` matches `origin/main` (no unpushed local-only state) |
-| **Aligned manifests** | `package.json`, `plugin.json`, `.cursor-plugin/plugin.json` all report the same `version` (reuse validate-plugin-structure logic) |
-| **npm version absent** | `npm view @multipliers-dev/renovate-workflow@X.Y.Z` fails / version not published |
+| **Aligned manifests** | `package.json`, `plugin.json`, `.cursor-plugin/plugin.json` all report the same `version`; `package.json` `"name"` matches expected scoped publish name (reuse validate-plugin-structure logic) |
+| **npm version absent** | `npm view` for the scoped name at `package.json` version fails / version not published |
 | **git tag absent** | `vX.Y.Z` tag does not already exist on remote |
 | **Packed artifact smoke** | `npm pack` + temp install + `renovate-workflow freshness-poll --help` succeeds |
 | **Tag ↔ publish commit** | After publish, create `vX.Y.Z` pointing at the **same commit SHA** that was checked out and published; record SHA in GitHub Release body |
@@ -265,9 +281,9 @@ Require `workflow_dispatch` confirmation input (e.g. type `publish` and the exac
 
 ### 9. Package validation (artifact tests)
 
-Add to CI (package-cli slice):
+**`package-cli` slice (unscoped name):**
 
-1. **`npm pack --dry-run` / manifest test** — assert tarball contains only `dist/**`, `package.json`, `README.md`; assert excludes `skills/`, `scripts/`, `*.test.ts`; assert packed `package.json` `"name"` is `@multipliers-dev/renovate-workflow`
+1. **`npm pack --dry-run` / manifest test** — assert tarball contains only `dist/**`, `package.json`, `README.md`; assert excludes `skills/`, `scripts/`, `*.test.ts`; assert packed `package.json` `"name"` is still `renovate-workflow`
 2. **Consumer smoke fixture** — e.g. [`scripts/fixtures/npm-consumer/`](scripts/fixtures/npm-consumer/):
    ```bash
    npm pack
@@ -275,6 +291,10 @@ Add to CI (package-cli slice):
    npx renovate-workflow freshness-poll --help
    ```
 3. **Existing Vitest** — continue testing source modules (`scripts/**/*.test.ts`); add test that built `dist/cli.js` is invocable if feasible without flaking
+
+**`version-bump-0.3.0` slice (scoped release manifest):**
+
+4. **Release manifest pack test** — after scoped rename + version bump, `npm pack` tarball asserts `"name": "@multipliers-dev/renovate-workflow"` and `"version": "0.3.0"`
 
 ### 10. Renovate interaction in consumers
 
@@ -296,9 +316,9 @@ packages:
 
 ```text
 1. plan-review (plan-only PR)          ← this slice
-2. package-cli                         ← build, bin, pack tests, skill boundary fix
+2. package-cli                         ← build, bin, pack tests; keep unscoped name
 3. release-infrastructure              ← publish-only workflow + safeguards, doc drafts
-4. version-bump-0.3.0                  ← reviewed PR: manifests → 0.3.0 (no publish)
+4. version-bump-0.3.0                  ← scoped rename + manifests → 0.3.0 + remove private
 5. first-release                       ← dispatch publish/tag/release from merged 0.3.0 commit
 6. consumer-migrate-codenames          ← first external consumer
 7. e2e babysit verification            ← /renovate-loop --babysit on codenames
@@ -308,9 +328,10 @@ packages:
 
 **Rollback:**
 
-- Consumers: revert to `github:multipliers-dev/renovate-workflow#vX.Y.Z` + tsx script; lockfile regen
-- Registry: forward-fix via new version-bump PR + publish (do not rely on unpublish)
-- Plugin: reinstall from prior unified tag (npm and plugin always share version *V*)
+- **After npm migration (preferred):** revert the consumer to the last known-good published npm version (exact pin or prior caret range); do not use a floating git dependency.
+- **Emergency git+tsx rollback (pre-migration or pre-scoped era only):** pin the git devDependency to a **known commit or tag** whose `package.json` still has `"name": "renovate-workflow"` (e.g. last `0.2.x` commit before `version-bump-0.3.0` merged), then keep `tsx node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts`. **Invalid for `v0.3.0+`:** tags at `0.3.0` and later ship the scoped name and install under `node_modules/@multipliers-dev/renovate-workflow`, so `node_modules/renovate-workflow/...` paths will not work.
+- **Registry:** forward-fix via new version-bump PR + publish (do not rely on unpublish)
+- **Plugin:** reinstall from prior unified tag (npm and plugin always share version *V*)
 
 ---
 
@@ -321,7 +342,7 @@ packages:
 | plan-review | Plan-only PR | Do not implement. Stop after opening the plan-only PR. |
 | package-cli | Open PR only | Do not merge. Stop after opening the PR. |
 | release-infrastructure | Open PR only | Do not merge. Stop after opening the PR. |
-| version-bump-0.3.0 | Open PR only | Do not merge. Stop after opening the PR. No publish, no tag. |
+| version-bump-0.3.0 | Open PR only | Do not merge. Stop after opening the PR. Scoped rename + version bump only; no publish, no tag. |
 | first-release | Merge granted | Publish/tag/release only after version-bump-0.3.0 merged; workflow must not bump versions. |
 | consumer-migrate-codenames | Open PR only | Do not merge. Stop after opening the PR. |
 | e2e-babysit-codenames | Manual verification gate | Report verdict; no PR unless findings require fixes. |
@@ -342,7 +363,7 @@ sequenceDiagram
   Dev->>WF: workflow_dispatch
   WF->>Main: checkout HEAD verify clean aligned
   WF->>WF: test build pack smoke
-  WF->>Npm: publish X.Y.Z from HEAD
+  WF->>Npm: npm publish from HEAD package.json
   WF->>Git: tag vX.Y.Z at same SHA
   Note over WF,Git: no version bump no commit to main
 ```
@@ -367,9 +388,9 @@ sequenceDiagram
 | --- | --- |
 | **Authority** | Open PR only |
 | **Prerequisites** | plan-review merged |
-| **Scope** | Rename `package.json` `"name"` to `@multipliers-dev/renovate-workflow`; build pipeline, `bin`, narrow `files` (keep `"private": true` until `version-bump-0.3.0`), pack + smoke tests, skill boundary fix |
-| **Expected files** | `package.json` (scoped `name`, `bin`, `files`, `engines`; version unchanged at `0.2.0`), `scripts/tsconfig.build.json`, `scripts/cli.ts` (new dispatcher), `dist/` gitignored, `.gitignore`, `scripts/pack-manifest.test.ts` (or similar), `scripts/fixtures/npm-consumer/`, `skills/renovate-classifier/SKILL.md`, `skills/renovate-loop/verification.md`, `AGENTS.md`, [`examples/adopt-stub/package.json`](examples/adopt-stub/package.json) (target scoped dep shape; version pin deferred) |
-| **Verification** | `npm test`, `npm run typecheck`, `npm run build`, pack manifest test (includes scoped `name` assertion), smoke `--help`; `npm pack` tarball `package.json` reports `"name": "@multipliers-dev/renovate-workflow"` |
+| **Scope** | Build pipeline, `bin`, narrow `files`, pack + smoke tests, skill boundary fix. **Keep** `"name": "renovate-workflow"` and `"private": true` so existing git consumers (`node_modules/renovate-workflow/scripts/...`) remain compatible through `release-infrastructure` |
+| **Expected files** | `package.json` (unscoped `name`, `bin`, `files`, `engines`; version unchanged at `0.2.0`), `scripts/tsconfig.build.json`, `scripts/cli.ts` (new dispatcher), `dist/` gitignored, `.gitignore`, `scripts/pack-manifest.test.ts` (or similar), `scripts/fixtures/npm-consumer/`, `skills/renovate-classifier/SKILL.md`, `skills/renovate-loop/verification.md`, `AGENTS.md`, [`examples/adopt-stub/package.json`](examples/adopt-stub/package.json) (unchanged git dep shape until consumer migration) |
+| **Verification** | `npm test`, `npm run typecheck`, `npm run build`, pack manifest test (asserts unscoped `name`), smoke `--help`; `npm pack` tarball `package.json` reports `"name": "renovate-workflow"` |
 | **External effects** | None |
 | **Rollback** | Revert PR |
 
@@ -391,9 +412,9 @@ sequenceDiagram
 | --- | --- |
 | **Authority** | Open PR only |
 | **Prerequisites** | release-infrastructure merged |
-| **Scope** | Version and publish-readiness only: bump `package.json`, `plugin.json`, `.cursor-plugin/plugin.json` from `0.2.0` → `0.3.0`; remove `"private": true` from `package.json`. **Does not** rename the npm package (scoped `name` lands in `package-cli`). Changelog/release-notes draft optional in PR description |
-| **Expected files** | Three aligned manifest version fields, `package.json` `"private": false` (or removed), optional `CHANGELOG.md` entry |
-| **Verification** | `npm test` (validate-plugin-structure passes); `package.json` still `"name": "@multipliers-dev/renovate-workflow"`; **no** npm publish; **no** git tag |
+| **Scope** | Atomic release manifest prep immediately before `first-release`: rename `package.json` `"name"` to `@multipliers-dev/renovate-workflow`; bump `package.json`, `plugin.json`, `.cursor-plugin/plugin.json` from `0.2.0` → `0.3.0`; remove `"private": true`. Changelog/release-notes draft optional in PR description |
+| **Expected files** | `package.json` (scoped `name`, version `0.3.0`, no `private`), aligned plugin manifest versions, release-manifest pack test, optional `CHANGELOG.md` entry |
+| **Verification** | `npm test` (validate-plugin-structure passes); `npm pack` tarball asserts `"name": "@multipliers-dev/renovate-workflow"` and `"version": "0.3.0"`; **no** npm publish; **no** git tag |
 | **External effects** | None |
 | **Rollback** | Revert PR before first-release |
 
@@ -417,7 +438,7 @@ sequenceDiagram
 | **Scope** | Replace git dep + tsx script in [`codenames-ai-guesser/package.json`](https://github.com/multipliers-dev/codenames-ai-guesser); update `AGENTS.md`, `README.md`; add explicit `packages:` entry in `.agents/renovate-policy.yml`; remove `tsx` if no longer needed elsewhere |
 | **Verification** | `npm run renovate:freshness-poll -- --help`; lockfile resolves npm version; existing CI passes |
 | **External effects** | None |
-| **Rollback** | Revert to git dep PR |
+| **Rollback** | Revert to last known-good published npm version (preferred); see §11 rollback options |
 
 ### e2e-babysit-codenames
 
@@ -496,9 +517,9 @@ Authority: Open PR only — implement and open the PR; do not merge.
 
 Topology: start from latest origin/main; branch represents only this slice; PR base must be main.
 
-Deliverables: rename package.json name to @multipliers-dev/renovate-workflow; compiled dist build; renovate-workflow bin with freshness-poll subcommand; narrow package files; pack manifest + consumer smoke tests (assert packed name is scoped); skill/doc boundary fixes per plan. Mark package-cli completed in plan frontmatter in this PR.
+Deliverables: compiled dist build; renovate-workflow bin with freshness-poll subcommand; narrow package files; keep package.json name as renovate-workflow (unscoped) for git consumer compatibility; pack manifest + consumer smoke tests (assert packed name remains unscoped); skill/doc boundary fixes per plan. Mark package-cli completed in plan frontmatter in this PR.
 
-Verification: npm test, npm run typecheck, npm run build, pack tests pass (including scoped package name in tarball), renovate-workflow freshness-poll --help works from packed artifact fixture.
+Verification: npm test, npm run typecheck, npm run build, pack tests pass (packed name is renovate-workflow), renovate-workflow freshness-poll --help works from packed artifact fixture.
 ```
 
 ### release-infrastructure
@@ -528,9 +549,9 @@ Authority: Open PR only — implement and open the PR; do not merge.
 
 Topology: start from latest origin/main; branch represents only this slice; PR base must be main.
 
-Deliverables: reviewed PR bumping package.json, plugin.json, and .cursor-plugin/plugin.json to 0.3.0 together; remove private from package.json. Do not rename the npm package (already scoped in package-cli). Mark version-bump-0.3.0 completed in plan frontmatter in this PR.
+Deliverables: atomic release manifest — rename package.json to @multipliers-dev/renovate-workflow; bump package.json, plugin.json, and .cursor-plugin/plugin.json to 0.3.0; remove private; add release-manifest pack test. Mark version-bump-0.3.0 completed in plan frontmatter in this PR.
 
-Verification: npm test passes (validate-plugin-structure); package.json name remains @multipliers-dev/renovate-workflow; no npm publish; no git tag.
+Verification: npm test passes (validate-plugin-structure); npm pack asserts scoped name and version 0.3.0; no npm publish; no git tag.
 ```
 
 ### first-release
