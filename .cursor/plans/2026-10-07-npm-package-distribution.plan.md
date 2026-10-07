@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: first-release
     content: "Explicit publish/tag/GitHub Release for 0.3.0 from merged version-bump commit (Merge granted; external side effect)"
-    status: pending
+    status: completed
   - id: consumer-migrate-codenames
     content: "PR (codenames-ai-guesser): npm dep, CLI script, policy entry, remove tsx if unused"
     status: completed
@@ -86,7 +86,7 @@ flowchart TB
 | npm org / scope `@multipliers-dev` | **Done** — created and controlled by project owner |
 | Target publish name `@multipliers-dev/renovate-workflow` | **Confirmed** — not a namespace to validate during `first-release` |
 
-**Remaining before `first-release`:** one-time npm registry bootstrap (package must exist before Trusted Publisher attach); npm Trusted Publisher configured for `release.yml`; dispatch `release.yml` for `0.3.0`.
+**`first-release` (complete, October 2026):** `@multipliers-dev/renovate-workflow@0.3.0` published via Trusted Publishing/OIDC (`release.yml` dispatch); matching `v0.3.0` git tag and GitHub Release created; disposable bootstrap stage rejected; package consumed successfully by Codenames (`consumer-migrate-codenames` merged). Bootstrap procedure archived in [`docs/archive/trusted-publishing-bootstrap-0.3.0.md`](../docs/archive/trusted-publishing-bootstrap-0.3.0.md).
 
 ---
 
@@ -502,10 +502,12 @@ sequenceDiagram
 
 ### first-release — Publish v0.3.0 from merged commit
 
+**Shipped (October 2026).** `@multipliers-dev/renovate-workflow@0.3.0` on npm via Trusted Publishing/OIDC; `v0.3.0` tag and GitHub Release at the published commit; disposable bootstrap stage rejected; Codenames consuming the published package.
+
 | | |
 | --- | --- |
 | **Authority** | **Merge granted** (or explicit human maintainer dispatch outside agent) — external side effect |
-| **Prerequisites** | `@multipliers-dev` npm org (done); `version-bump-0.3.0` merged; `sh scripts/npm-stage-cli-preflight.sh` passed; **one-time registry bootstrap** completed (`0.3.0` validation + `npm pack` in checkout → disposable `0.0.1` tarball → `npm stage publish`; checkout unchanged at `0.3.0`; must **not** leave staged `0.3.0` pending; see versioning.md § Trusted Publishing bootstrap); npm **Trusted Publisher** configured for `release.yml` within 48h of creation; `main` HEAD manifests read `0.3.0` with scoped `"name"`; after successful OIDC `0.3.0`, reject pending bootstrap stage |
+| **Prerequisites** | `@multipliers-dev` npm org (done); `version-bump-0.3.0` merged; `sh scripts/npm-stage-cli-preflight.sh` passed; **one-time registry bootstrap** completed (`0.3.0` validation + `npm pack` in checkout → disposable `0.0.1` tarball → `npm stage publish`; checkout unchanged at `0.3.0`; must **not** leave staged `0.3.0` pending; see [archived bootstrap doc](../docs/archive/trusted-publishing-bootstrap-0.3.0.md)); npm **Trusted Publisher** configured for `release.yml` within 48h of creation; `main` HEAD manifests read `0.3.0` with scoped `"name"`; after successful OIDC `0.3.0`, reject pending bootstrap stage |
 | **Scope** | Manually dispatch `release.yml` against current `main` — OIDC `npm publish --access public` (provenance automatic), tag `v0.3.0`, create GitHub Release for the **exact merged commit** (no version/name edits in workflow). Published tarball still includes transition `scripts/` surface |
 | **Verification** | All §8 safeguards pass; `npm view @multipliers-dev/renovate-workflow version` → `0.3.0`; temp `npm i` + `renovate-workflow freshness-poll --help`; remote tag `v0.3.0` points at published commit SHA (recorded in release notes). Git consumers not yet migrated may still need pinned pre-scoped commits — see §11 rollback |
 | **External effects** | **npm publish**, git tag, GitHub Release |
