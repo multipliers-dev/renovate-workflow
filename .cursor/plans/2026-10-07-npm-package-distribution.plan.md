@@ -13,7 +13,7 @@ todos:
     status: completed
   - id: version-bump-0.3.0
     content: "PR: atomic release prep — scoped rename, 0.3.0 manifest bump, remove private, packed-artifact verification (no publish)"
-    status: pending
+    status: completed
   - id: first-release
     content: "Explicit publish/tag/GitHub Release for 0.3.0 from merged version-bump commit (Merge granted; external side effect)"
     status: pending

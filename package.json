@@ -1,7 +1,6 @@
 {
-  "name": "renovate-workflow",
-  "version": "0.2.0",
-  "private": true,
+  "name": "@multipliers-dev/renovate-workflow",
+  "version": "0.3.0",
   "license": "MIT",
   "repository": {
     "type": "git",
