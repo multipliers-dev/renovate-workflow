@@ -19,7 +19,7 @@ todos:
     status: pending
   - id: consumer-migrate-codenames
     content: "PR (codenames-ai-guesser): npm dep, CLI script, policy entry, remove tsx if unused"
-    status: pending
+    status: completed
   - id: e2e-babysit-codenames
     content: "Manual gate: /renovate-loop --babysit end-to-end on codenames with new CLI"
     status: pending
