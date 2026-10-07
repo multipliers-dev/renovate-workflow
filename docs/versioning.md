@@ -1,10 +1,10 @@
 # Versioning
 
-How versions are tracked in this repository. **This repo is not published to npm** and does not cut GitHub releases automatically.
+How versions are tracked and released in this repository. The **Cursor plugin** and **npm CLI package** share one repository version — when a release is cut, both channels move together at the same commit.
 
 ## Aligned versions
 
-Keep these in sync when bumping:
+Keep these in sync when bumping in a reviewed PR:
 
 | File | Field | Current |
 | --- | --- | --- |
@@ -16,35 +16,114 @@ The marketplace catalog (`.cursor-plugin/marketplace.json`) has **no version fie
 
 Root `plugin.json` is the portable [Agent Plugins 1.0](https://agent-plugins.org/specification) manifest (metadata only — skills at fixed `skills/`). `.cursor-plugin/plugin.json` is the Cursor extension overlay (`skills`, `agents` paths). See [adopt.md](adopt.md#portable-vs-cursor-layers-this-repo).
 
-## Consumer git dependency
+## npm package (in rollout)
 
-This package stays `"private": true` — consumers install via git, not the npm registry.
+| Item | Status |
+| --- | --- |
+| npm org / scope | **`@multipliers-dev`** — created and controlled by project owner |
+| Target publish name | **`@multipliers-dev/renovate-workflow`** (confirmed) |
+| First npm version | **`0.3.0`** (after `version-bump-0.3.0` PR merges) |
+| Registry publish today | **Not yet** — `"private": true` until the version-bump PR; release workflow is wired but requires scoped manifest + `NPM_TOKEN` |
 
-**Today (tracks `main`):**
+Plugin manifest `name` fields (`plugin.json`, `.cursor-plugin/plugin.json`) stay **`renovate-workflow`** — only `package.json` uses the scoped npm name after the version-bump slice.
+
+## Unified version policy
+
+| Artifact | Distribution | Version meaning |
+| --- | --- | --- |
+| Cursor plugin | Git tag / marketplace import | Skills, agents, rubric at version *V* |
+| npm package | Registry | CLI/runtime contract at version *V* |
+
+**One coherent repository version:** version *V* always refers to the **same commit** for both channels. There is no supported path to cut a git tag / plugin release at *V* without publishing npm *V*. Maintenance may land on `main` without a release; when a release is cut, npm publish + git tag + GitHub Release all reference the same `main` HEAD commit whose manifests already read *V*.
+
+Merging to `main` **never publishes**. Version bumps happen only in reviewed PRs. The [release workflow](../.github/workflows/release.yml) never bumps versions and never commits back to `main`.
+
+## Two-step release model
+
+### Step A — Version bump (reviewed PR)
+
+Consumer-facing changes accumulate on `main` without a release. When ready, open a PR that bumps `package.json`, `plugin.json`, and `.cursor-plugin/plugin.json` to `X.Y.Z` together.
+
+For **`0.3.0`**, the same PR also:
+
+- Renames `package.json` `"name"` to `@multipliers-dev/renovate-workflow`
+- Removes `"private": true`
+- Keeps `scripts/` in `files` until consumer migrations finish (see [npm distribution plan](../.cursor/plans/2026-10-07-npm-package-distribution.plan.md))
+
+### Step B — Publish (manual `workflow_dispatch` only)
+
+After the version-bump PR merges:
+
+1. Configure **`NPM_TOKEN`** as a GitHub Actions repository secret (npm automation token with publish access to `@multipliers-dev/renovate-workflow`). Required before the first release.
+2. In GitHub Actions, run **Release** against `main`.
+3. Confirm with input `publish X.Y.Z` (exact manifest version).
+4. Workflow checks out `main`, runs safeguards, `npm publish --access public` (reads name/version from checked-out `package.json` only — no CLI coordinate override), tags `vX.Y.Z` at the same commit, and creates a GitHub Release.
+
+**Not automated:** publish on merge, version bumps in the release workflow, commits back to `main`, release-please, Changesets, or plugin-only tags without npm.
+
+### Release safeguards (blocking)
+
+| Check | Purpose |
+| --- | --- |
+| Clean, current `main` | `HEAD` matches `origin/main`; working tree clean |
+| Aligned manifests | All three manifest versions match |
+| Scoped publish name | `package.json` `"name"` is `@multipliers-dev/renovate-workflow`; not `private` |
+| Confirmation input | Dispatcher typed `publish X.Y.Z` matching manifests |
+| `npm ci` → test → typecheck → build | Same gates as CI |
+| npm version absent | `npm view` for scoped name at manifest version fails |
+| git tag absent | `vX.Y.Z` not on remote |
+| Packed artifact smoke | `npm pack` + temp install + `renovate-workflow freshness-poll --help` |
+| Tag ↔ publish commit | GitHub Release and `vX.Y.Z` tag point at the published commit SHA |
+
+CI also runs `npm publish --dry-run` on every push/PR (see [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)).
+
+## Version semantics (pre-1.0)
+
+Remain **`0.x`** until the CLI contract stabilizes.
+
+| Bump | When |
+| --- | --- |
+| **Patch** | Bug fix in `freshness-poll` output/behavior; dependency patch that does not change CLI contract |
+| **Minor** | New subcommand; additive CLI flags; backward-compatible JSON fields |
+| **Major** | Rename/remove flags; breaking JSON shape; Node engine floor increase; removing a subcommand |
+
+**Consumer version range after first npm release:** `^0.3.0` (`>=0.3.0 <0.4.0` under npm caret rules for `0.x`).
+
+## Consumer install paths
+
+### Today (git + legacy `tsx` script)
 
 ```json
 "renovate-workflow": "github:multipliers-dev/renovate-workflow"
 ```
 
-**After a human tags `v0.2.0` (optional, not done in this repo automatically):**
+Pin to a tag for reproducible installs: `github:multipliers-dev/renovate-workflow#v0.2.0`.
+
+### Target (after first npm release + consumer migration)
 
 ```json
-"renovate-workflow": "github:multipliers-dev/renovate-workflow#v0.2.0"
+"@multipliers-dev/renovate-workflow": "^0.3.0"
 ```
 
-Pin to a tag for reproducible consumer installs; track `main` for latest fixes.
+```json
+"renovate:freshness-poll": "renovate-workflow freshness-poll"
+```
+
+See [adopt.md](adopt.md) and [distribution-discovery.md](distribution-discovery.md).
 
 ## Package metadata
 
 `package.json` includes `repository`, `bugs`, and `homepage` so git/npm can identify the source. See [examples/adopt-stub/package.json](../examples/adopt-stub/package.json).
 
-## What we do not do (unless explicitly requested)
+## Self-hosting (this repo)
 
-- `npm publish`
-- `gh release create`
-- Git tags or releases as part of routine PRs
+This repository does **not** depend on its own published npm package.
 
-Version bumps in this repo are documentation and manifest alignment only until a maintainer chooses to tag.
+| Context | Invocation |
+| --- | --- |
+| **This repo (dev/CI)** | `npm run renovate:freshness-poll` → `tsx scripts/renovate-freshness-poll.ts` (source) |
+| **Packed-artifact test** | `npm pack` + temp install exercises compiled `bin` |
+| **External consumers** | `renovate-workflow freshness-poll` from published package |
 
 ## Agent Plugins spec version
 

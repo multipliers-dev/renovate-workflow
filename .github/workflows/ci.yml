@@ -18,3 +18,22 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run typecheck
+
+  publish-dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - name: Verify pack/publish manifest (dry-run)
+        run: |
+          set -euo pipefail
+          npm ci
+          npm test
+          npm run typecheck
+          npm run build
+          # --ignore-scripts: prepack already satisfied by explicit build+test above.
+          npm publish --dry-run --access public --ignore-scripts

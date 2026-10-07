@@ -4,6 +4,19 @@
 
 Evidence for the minimum local boundary when adopting the Renovate ladder via **Cursor plugin install** from [renovate-workflow](https://github.com/multipliers-dev/renovate-workflow) — without vendoring the full tree or routing through a separate marketplace mirror repo.
 
+## npm + plugin dual channel (rollout)
+
+| Channel | Artifact | Version coupling |
+| --- | --- | --- |
+| **Cursor plugin** | `skills/`, `.agents/`, docs — git marketplace import | Tag / commit at version *V* |
+| **npm package** | `@multipliers-dev/renovate-workflow` — compiled CLI in `dist/` | Registry version *V* |
+
+**`@multipliers-dev` npm org:** created and controlled by the project owner. Target package name **`@multipliers-dev/renovate-workflow`** is confirmed.
+
+**Unified version policy:** version *V* always means the same repository commit for both channels. Releases are intentional and two-step — version bump in a reviewed PR, then manual [`release.yml`](../.github/workflows/release.yml) dispatch (`npm publish --access public` + `vX.Y.Z` tag + GitHub Release). Merging to `main` never publishes. See [versioning.md](versioning.md).
+
+**Rollout state (2026-10):** release infrastructure is wired; first npm publish awaits `version-bump-0.3.0` merge + `NPM_TOKEN` secret. Git consumers (Codenames, Portfolio) still use the legacy `tsx` + `scripts/` path until migrated.
+
 **Precedent:** [Cursor multi-plugin repositories](https://cursor.com/docs/reference/plugins#cursor-multi-plugin-repositories) — a repo can ship `.cursor-plugin/marketplace.json` plus per-plugin `.cursor-plugin/plugin.json`. GitHub import (`/add-plugin <url>` or Customize → Plugins → Add → From GitHub) imports the **marketplace**, then the user installs listed plugins. This repo uses that pattern as a **single-plugin marketplace wrapper** (`"source": "."` → root `.cursor-plugin/plugin.json`). That is a **local/non-team** marketplace import, not Cursor's public marketplace and not an org Team Marketplace catalog.
 
 ---
@@ -18,7 +31,7 @@ Evidence for the minimum local boundary when adopting the Renovate ladder via **
 | **Policy template** (`renovate-policy.template.yml`) | **Yes (via plugin)** | Bootstrap only; consumer copies to `.agents/renovate-policy.yml`. |
 | **Agent prompts** (`renovate-maintainer.md`, `renovate-investigator.md`) | **Plugin + skill invoke** | Manifest `"agents": ".agents"`. `@.agents/` in copy/paste blocks resolves from the **consumer workspace**, not plugin cache. **Mitigation:** invoke `/renovate-maintainer` and `/renovate-investigator`. |
 | **Report templates** (`.agents/templates/*.md`) | **Yes (via plugin)** | Reports written under consumer `.agent-runs/renovate/`; template content read from plugin `.agents/templates/` via skill links. |
-| **Executable scripts** (`scripts/lib/*`, freshness poll CLI) | **No — npm/git dep on same repo** | Skills shell out with workspace-relative paths; consumer adds `renovate-workflow` + `tsx` devDependencies and runs `tsx node_modules/renovate-workflow/scripts/…`. No script vendoring. |
+| **Executable CLI** (`renovate-workflow freshness-poll`) | **No — npm package (or interim git dep)** | Skills shell out via consumer `npm run renovate:freshness-poll`. Target: `@multipliers-dev/renovate-workflow` compiled `bin`. Interim git consumers still use `tsx` on packaged `scripts/`. No script vendoring into consumer repos. |
 
 ---
 
@@ -38,7 +51,7 @@ Portable interpretation stays in plugin `.agents/policy-rubric.base.md`.
 
 | Primitive | Path in this repo | Consumer invocation |
 | --- | --- | --- |
-| Freshness poll CLI | `scripts/renovate-freshness-poll.ts` | `npm run renovate:freshness-poll -- --repo … --pr … --expected-head …` |
+| Freshness poll CLI | `dist/cli.js` (npm) / `scripts/renovate-freshness-poll.ts` (legacy git) | `npm run renovate:freshness-poll -- --repo … --pr … --expected-head …` |
 | Babysit core | `scripts/lib/renovate-freshness-poll.ts` | Imported by CLI |
 | Guardrails | `scripts/lib/renovate-guardrails.ts` | Agent follows skill prose; import from `node_modules/renovate-workflow/scripts/lib/…` when shelling out |
 | Stop causes | `scripts/lib/derive-stop-causes.ts` | Classifier § packet emission |
@@ -47,7 +60,7 @@ Portable interpretation stays in plugin `.agents/policy-rubric.base.md`.
 
 Classifier §2.7 (`/renovate-loop --babysit`) is the only skill path that shells out to the freshness poll CLI.
 
-**Verified:** git/npm devDependency on this repo + `tsx`. Full-tree vendoring **not required**.
+**Verified:** npm devDependency on `@multipliers-dev/renovate-workflow` (or interim git install + `tsx`). Full-tree vendoring **not required**.
 
 ---
 
@@ -60,8 +73,8 @@ renovate-workflow (marketplace + plugin + npm package)   Consumer repo (facts + 
 ├── skills/                                        ├── .github/workflows/renovate.yml
 ├── .agents/ (portable prompts, rubric)                    ├── .gitignore → .agent-runs/renovate/
 ├── docs/                                                  └── package.json devDeps:
-├── scripts/                                                   renovate-workflow (github:…)
-└── package.json                                               tsx
+├── scripts/ (legacy git surface)                              @multipliers-dev/renovate-workflow (npm)
+└── package.json                                               renovate-workflow freshness-poll (CLI)
 ```
 
 **Not required in consumer:** vendored skills, runbook, agent prompts, rubric base, or script lib copies.

@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: release-infrastructure
     content: "PR: workflow_dispatch release.yml (publish-only, no version bump), dry-run CI, update versioning/adopt/distribution docs (no publish)"
-    status: pending
+    status: completed
   - id: version-bump-0.3.0
     content: "PR: atomic release prep — scoped rename, 0.3.0 manifest bump, remove private, packed-artifact verification (no publish)"
     status: pending
