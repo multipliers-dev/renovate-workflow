@@ -8,24 +8,24 @@ Keep these in sync when bumping in a reviewed PR:
 
 | File | Field | Current |
 | --- | --- | --- |
-| `package.json` | `"version"` | `0.2.0` |
-| `plugin.json` (Agent Plugins 1.0 portable) | `"version"` | `0.2.0` |
-| `.cursor-plugin/plugin.json` (Cursor overlay) | `"version"` | `0.2.0` |
+| `package.json` | `"version"` | `0.3.0` |
+| `plugin.json` (Agent Plugins 1.0 portable) | `"version"` | `0.3.0` |
+| `.cursor-plugin/plugin.json` (Cursor overlay) | `"version"` | `0.3.0` |
 
 The marketplace catalog (`.cursor-plugin/marketplace.json`) has **no version field**. Treat it as install metadata for the GitHub-import flow, not a release artifact.
 
 Root `plugin.json` is the portable [Agent Plugins 1.0](https://agent-plugins.org/specification) manifest (metadata only — skills at fixed `skills/`). `.cursor-plugin/plugin.json` is the Cursor extension overlay (`skills`, `agents` paths). See [adopt.md](adopt.md#portable-vs-cursor-layers-this-repo).
 
-## npm package (in rollout)
+## npm package
 
 | Item | Status |
 | --- | --- |
-| npm org / scope | **`@multipliers-dev`** — created and controlled by project owner |
-| Target publish name | **`@multipliers-dev/renovate-workflow`** (confirmed) |
-| First npm version | **`0.3.0`** (after `version-bump-0.3.0` PR merges) |
-| Registry publish today | **Not yet** — manifests on `main` read `0.3.0` / scoped name; release workflow uses npm **Trusted Publishing** (OIDC), not `NPM_TOKEN` |
+| npm org / scope | **`@multipliers-dev`** |
+| Published name | **`@multipliers-dev/renovate-workflow`** |
+| First npm release | **`0.3.0`** (October 2026) — published via [`release.yml`](../.github/workflows/release.yml) with npm **Trusted Publishing** (OIDC) |
+| Registry auth | **OIDC only** — no `NPM_TOKEN` / `NODE_AUTH_TOKEN` for publishing |
 
-Plugin manifest `name` fields (`plugin.json`, `.cursor-plugin/plugin.json`) stay **`renovate-workflow`** — only `package.json` uses the scoped npm name after the version-bump slice.
+Plugin manifest `name` fields (`plugin.json`, `.cursor-plugin/plugin.json`) stay **`renovate-workflow`** — only `package.json` uses the scoped npm name.
 
 ## Unified version policy
 
@@ -44,21 +44,13 @@ Merging to `main` **never publishes**. Version bumps happen only in reviewed PRs
 
 Consumer-facing changes accumulate on `main` without a release. When ready, open a PR that bumps `package.json`, `plugin.json`, and `.cursor-plugin/plugin.json` to `X.Y.Z` together.
 
-For **`0.3.0`**, the same PR also:
-
-- Renames `package.json` `"name"` to `@multipliers-dev/renovate-workflow`
-- Removes `"private": true`
-- Keeps `scripts/` in `files` until consumer migrations finish (see [npm distribution plan](../.cursor/plans/2026-10-07-npm-package-distribution.plan.md))
-
 ### Step B — Publish (manual `workflow_dispatch` only)
 
 After the version-bump PR merges:
 
-1. Complete the **one-time registry bootstrap** if `@multipliers-dev/renovate-workflow` does not yet exist on npm (see [Trusted Publishing bootstrap](#trusted-publishing-bootstrap) below).
-2. Configure the npm **Trusted Publisher** for this repository’s release workflow (see [npm Trusted Publisher settings](#npm-trusted-publisher-settings)).
-3. In GitHub Actions, run **Release** against `main`.
-4. Confirm with input `publish X.Y.Z` (exact manifest version).
-5. Workflow checks out `main`, runs safeguards, `npm publish --access public` via OIDC (reads name/version from checked-out `package.json` only — no CLI coordinate override), tags `vX.Y.Z` at the same commit, and creates a GitHub Release.
+1. In GitHub Actions, run **Release** against `main`.
+2. Confirm with input `publish X.Y.Z` (exact manifest version).
+3. Workflow checks out `main`, runs safeguards, `npm publish --access public` via OIDC (reads name/version from checked-out `package.json` only — no CLI coordinate override), tags `vX.Y.Z` at the same commit, and creates a GitHub Release.
 
 **Not automated:** publish on merge, version bumps in the release workflow, commits back to `main`, release-please, Changesets, or plugin-only tags without npm.
 
@@ -83,145 +75,9 @@ When publishing via Trusted Publishing from a **public** GitHub repository to a 
 
 After a successful release, verify with `npm audit signatures` in a consumer checkout.
 
-### Can Trusted Publishing be configured before the first publish?
-
-**No.** npm requires the package to **already exist on the registry** before a Trusted Publisher can be attached. Official sources:
-
-- [Trusted publishing](https://docs.npmjs.com/trusted-publishers/) — configure via **package settings on npmjs.com** (package must exist).
-- [`npm trust` prerequisites](https://docs.npmjs.com/cli/v11/commands/npm-trust/) — “Package must exist: The package you're configuring must already exist on the npm registry.”
-
-Therefore **`0.3.0` can be the first OIDC-published version**, but only after a **one-time bootstrap** creates the package name on npm without occupying the `0.3.0` semver slot in the staging index.
-
-### Staged vs direct publish (same version)
-
-Per [`npm stage` key behaviors](https://docs.npmjs.com/cli/v12/commands/npm-stage/):
-
-- **Staged and published versions share one semver uniqueness index** — you **cannot** `npm publish` a version that already exists as a **staged** version for that package.
-- **Other versions can still publish** while unrelated staged versions are pending.
-- **Direct `npm publish` does not supersede** a pending staged submission for the same version.
-- To free a semver slot occupied by staging, run **`npm stage reject <stage-id>`** (requires account 2FA) before direct publish.
-
-**Implication for bootstrap:** running `npm stage publish` from a checkout whose `package.json` reads **`0.3.0`** stages **`0.3.0`** and **blocks** the OIDC `release.yml` publish of `0.3.0` until that staged submission is rejected. Leaving it pending is **not** sufficient.
-
-### Trusted Publishing bootstrap
-
-Choose **one** bootstrap path before configuring the Trusted Publisher and dispatching `release.yml` for `0.3.0`.
-
-#### Option A — Staged placeholder with disposable version (recommended; keeps `0.3.0` for OIDC)
-
-Uses [staged publishing](https://docs.npmjs.com/staged-publishing): staging a **new** scoped package also creates a public `0.0.0-stage` placeholder so the package exists on npm. `npm stage publish` does **not** require 2FA.
-
-Stage a **bootstrap version other than `0.3.0`** so the `0.3.0` semver slot stays free for `release.yml`. The `0.0.1` version exists **only** in a disposable bootstrap artifact — never in the canonical checkout.
-
-**Why not mutate the checkout?** `npm stage publish` from a directory runs the same pack path as `npm publish` (`libnpmpack`), which invokes `prepack` → `npm test`. This repository enforces release invariants at `0.3.0` (`validate-plugin-structure`, `pack-manifest` tests). Changing `package.json` to `0.0.1` in the checkout therefore fails safely before any registry mutation. Do **not** weaken those tests or use `--ignore-scripts` to evade them.
-
-**`npm stage publish` package-spec (verified):** per [`npm stage publish`](https://docs.npmjs.com/cli/v12/commands/npm-stage/#npm-stage-publish), the command accepts a `<package-spec>` like `npm publish` — a **directory** or a **`.tgz` tarball**. Directory publishes run lifecycle scripts (`prepublishOnly`, then `prepack` during pack). **Tarball publishes do not run lifecycle scripts** (same rule as [`npm publish`](https://docs.npmjs.com/cli/v12/commands/npm-publish/)). For bootstrap, build and validate the real `0.3.0` artifact in the checkout, then stage a **disposable `0.0.1` tarball** repacked with **`npm pack`** (not manual `tar -czf`).
-
-**Why not `tar -czf` for the bootstrap tarball?** `npm pack` (libnpmpack) emits **file entries only** under `package/...` — it never writes a bare `package/` directory entry. macOS/BSD `tar -czf … package` **does** emit `package/` (path ending in `/`). The npm registry rejects such entries with **`E415 Unsupported Media Type` / `invalid path: package/`**. Manual tar on macOS can also introduce AppleDouble `._*` entries; those are a separate artifact-integrity problem, not the direct cause of `invalid path: package/`, but still forbidden in bootstrap tarballs. Use `npm run bootstrap:tarball` (or `tsx scripts/bootstrap-tarball.ts`) to build and preflight-inspect the disposable tarball before any registry operation.
-
-**0. npm CLI preflight (required — Node version alone is insufficient)**
-
-Staged publishing requires **npm CLI ≥ 11.15.0** ([staged publishing docs](https://docs.npmjs.com/staged-publishing/)). A new enough Node does not guarantee `npm stage` exists (bundled npm may be older). Run this **before** bootstrap:
-
-```bash
-sh scripts/npm-stage-cli-preflight.sh
-```
-
-The script checks `npm --version` against `11.15.0` and verifies `npm stage --help` succeeds.
-
-**1. Bootstrap (one-time, local)**
-
-From a clean checkout of the merged `0.3.0` commit on `main` (Node **≥ 22.14.0**, npm preflight above):
-
-```bash
-set -euo pipefail
-
-sh scripts/npm-stage-cli-preflight.sh
-
-# --- 1. Validate canonical checkout at 0.3.0 (unchanged throughout) ---
-test -z "$(git status --porcelain)" || { echo "working tree not clean" >&2; exit 1; }
-node -e 'const p=require("./package.json"); if (p.version !== "0.3.0") { console.error(`Expected package version 0.3.0, got ${p.version}`); process.exit(1) }'
-
-npm ci
-npm test
-npm run typecheck
-npm run build
-
-# --- 2. Pack verified 0.3.0 publish artifact (prepack re-runs build + test) ---
-PACK_OUTPUT="$(npm pack 2>/dev/null)"
-TARBALL="$(printf '%s\n' "$PACK_OUTPUT" | grep '\.tgz$' | tail -1)"
-test -n "$TARBALL" && test -f "$TARBALL" || { echo "npm pack did not produce a .tgz" >&2; exit 1; }
-trap 'rm -f "${TARBALL:-}"; if [ -n "${BOOTSTRAP_TGZ:-}" ]; then rm -rf "$(dirname "$BOOTSTRAP_TGZ")"; fi' EXIT
-
-# --- 3. Disposable bootstrap tarball at 0.0.1 (npm pack in isolated temp dir) ---
-# Repacks only the validated publish surface; asserts no package/, ._* , .git, tests, or credentials.
-# Default output is a temp artifact directory (extraction/repack workdirs are cleaned up).
-# The maintainer owns BOOTSTRAP_TGZ until deleted (trap above) after stage publish.
-BOOTSTRAP_TGZ="$(npm run bootstrap:tarball -- --from-tarball "$TARBALL" | tail -1)"
-test -n "$BOOTSTRAP_TGZ" && test -f "$BOOTSTRAP_TGZ" || { echo "bootstrap tarball preflight failed" >&2; exit 1; }
-
-# --- 4. Stage disposable 0.0.1 tarball (no lifecycle scripts on tarball publish) ---
-npm stage publish "$BOOTSTRAP_TGZ" --access public
-
-# --- 5. Confirm canonical checkout still 0.3.0 and clean ---
-test -z "$(git status --porcelain)" || { echo "bootstrap must not modify the checkout" >&2; exit 1; }
-node -e 'const p=require("./package.json"); if (p.version !== "0.3.0") { console.error(`Expected package version to remain 0.3.0, got ${p.version}`); process.exit(1) }'
-
-# Record the bootstrap stage id for post-release cleanup
-npm stage list @multipliers-dev/renovate-workflow
-```
-
-**Do not** approve the staged `0.0.1` submission. A pending `0.0.1` does **not** block OIDC publish of `0.3.0`. The registry now has the package shell (`0.0.0-stage` placeholder).
-
-**2. Preflight before Trusted Publisher config and `release.yml` dispatch**
-
-Confirm the checkout matches the committed release manifest:
-
-```bash
-test -z "$(git status --porcelain)" || { echo "working tree not clean" >&2; exit 1; }
-node -e 'const p=require("./package.json"); if (p.version !== "0.3.0") { console.error(`Expected package version 0.3.0, got ${p.version}`); process.exit(1) }'
-```
-
-**3. Configure Trusted Publisher** (below) **within 48 hours** of creating it — unvalidated configurations expire ([npm docs](https://docs.npmjs.com/trusted-publishers/#trusted-publisher-configuration-expiry), [GitHub changelog](https://github.blog/changelog/2026-10-02-unvalidated-npm-trusted-publishing-configurations-now-expire/)).
-
-Re-run the preflight checks above immediately before dispatch if any local files changed.
-
-**4. Dispatch `release.yml`** with confirmation `publish 0.3.0` — OIDC publishes the real `0.3.0` artifact.
-
-**5. Post-release cleanup (after successful OIDC publication of `0.3.0`)**
-
-Reject the disposable bootstrap stage so it does not linger in the staging area:
-
-```bash
-npm stage list @multipliers-dev/renovate-workflow   # find the pending 0.0.1 stage id
-npm stage reject <stage-id>                         # requires account 2FA
-```
-
-#### Option A′ — Staged `0.3.0`, then explicit reject (only if you already staged `0.3.0`)
-
-If `npm stage publish` was already run with `version: 0.3.0` in `package.json`:
-
-1. `npm stage list @multipliers-dev/renovate-workflow` — note the staged `0.3.0` stage id.
-2. `npm stage reject <stage-id>` — **required** before OIDC publish; requires account 2FA ([`npm stage reject`](https://docs.npmjs.com/cli/v12/commands/npm-stage/#npm-stage-reject)).
-3. Configure Trusted Publisher, then dispatch `release.yml` for `0.3.0`.
-
-#### Option B — One-time interactive `npm publish` (simplest; `0.3.0` is not OIDC-published)
-
-From [Creating and publishing scoped public packages](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages): the first direct publish requires **account 2FA** (or a granular access token with bypass 2FA — not recommended).
-
-1. Maintainer runs locally at the merged commit:
-   ```bash
-   npm ci && npm test && npm run typecheck && npm run build
-   npm publish --access public
-   ```
-2. Configure Trusted Publishing for **future** releases (`0.3.1+`).
-3. **Do not** re-dispatch `release.yml` for `0.3.0` — the version is already on the registry. Create the git tag and GitHub Release manually at the published commit if needed.
-
-For this project’s intentional two-step model, **Option A** preserves `0.3.0` as the first version published through `release.yml` with OIDC. **Do not** run `npm stage publish` with `version: 0.3.0` unless you will follow **Option A′** and reject that staged submission before dispatch.
-
 ### npm Trusted Publisher settings
 
-Configure **after** the package exists on npm.
+Trusted Publisher for this repository is **already configured** for [`release.yml`](../.github/workflows/release.yml). Use these values when verifying or recovering configuration:
 
 **Web UI** — [npmjs.com](https://www.npmjs.com) → **Packages** → `@multipliers-dev/renovate-workflow` → **Settings** → **Trusted publishing** → **GitHub Actions**:
 
@@ -244,7 +100,7 @@ npm trust github @multipliers-dev/renovate-workflow \
 
 npm does **not** validate the configuration at save time — mismatches surface only at publish time. All fields are case-sensitive; workflow filename is **only** `release.yml` (not `.github/workflows/release.yml`).
 
-After Trusted Publishing is verified, consider **Settings → Publishing access → Require two-factor authentication and disallow tokens** ([npm migration tip](https://docs.npmjs.com/trusted-publishers/#recommended-restrict-token-access-when-using-trusted-publishers)).
+Consider **Settings → Publishing access → Require two-factor authentication and disallow tokens** ([npm migration tip](https://docs.npmjs.com/trusted-publishers/#recommended-restrict-token-access-when-using-trusted-publishers)).
 
 ### Release safeguards (blocking)
 
@@ -280,6 +136,14 @@ CI also runs `npm publish --dry-run` on every push/PR (see [`.github/workflows/c
 
 Forward-fix only — npm does not support unpublish as a routine rollback path.
 
+## First release bootstrap (complete — archived)
+
+The initial `0.3.0` release required a **one-time registry bootstrap** before npm would accept Trusted Publisher configuration for a new scoped package. That bootstrap (disposable `0.0.1` staged tarball, Trusted Publisher setup, OIDC `0.3.0` publish, bootstrap stage cleanup) is **complete**.
+
+**Do not** repeat bootstrap steps for routine `0.3.1+` releases — follow [Step A / Step B](#two-step-release-model) only.
+
+Historical procedure, rationale, and recovery notes: [archive/trusted-publishing-bootstrap-0.3.0.md](archive/trusted-publishing-bootstrap-0.3.0.md)
+
 ## Version semantics (pre-1.0)
 
 Remain **`0.x`** until the CLI contract stabilizes.
@@ -290,19 +154,11 @@ Remain **`0.x`** until the CLI contract stabilizes.
 | **Minor** | New subcommand; additive CLI flags; backward-compatible JSON fields |
 | **Major** | Rename/remove flags; breaking JSON shape; Node engine floor increase; removing a subcommand |
 
-**Consumer version range after first npm release:** `^0.3.0` (`>=0.3.0 <0.4.0` under npm caret rules for `0.x`).
+**Consumer version range:** `^0.3.0` (`>=0.3.0 <0.4.0` under npm caret rules for `0.x`).
 
 ## Consumer install paths
 
-### Today (git + legacy `tsx` script)
-
-```json
-"renovate-workflow": "github:multipliers-dev/renovate-workflow"
-```
-
-Pin to a tag for reproducible installs: `github:multipliers-dev/renovate-workflow#v0.2.0`.
-
-### Target (after first npm release + consumer migration)
+### npm (recommended)
 
 ```json
 "@multipliers-dev/renovate-workflow": "^0.3.0"
@@ -311,6 +167,16 @@ Pin to a tag for reproducible installs: `github:multipliers-dev/renovate-workflo
 ```json
 "renovate:freshness-poll": "renovate-workflow freshness-poll"
 ```
+
+### Git + legacy `tsx` script (interim)
+
+Some consumers still pin the git tarball and invoke `scripts/` via `tsx` during migration:
+
+```json
+"renovate-workflow": "github:multipliers-dev/renovate-workflow"
+```
+
+Pin to a tag for reproducible installs: `github:multipliers-dev/renovate-workflow#v0.3.0`.
 
 See [adopt.md](adopt.md) and [distribution-discovery.md](distribution-discovery.md).
 
@@ -330,7 +196,7 @@ This repository does **not** depend on its own published npm package.
 
 ## Agent Plugins spec version
 
-This is separate from the package version (`0.2.0` above). The repo targets **Agent Plugins spec 1.0.0** via the root `plugin.json` `$schema` URL:
+This is separate from the package version (`0.3.0` above). The repo targets **Agent Plugins spec 1.0.0** via the root `plugin.json` `$schema` URL:
 
 `https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`
 

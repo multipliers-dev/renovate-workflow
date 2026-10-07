@@ -117,22 +117,14 @@ Also:
 
 ## Publishing (maintainers)
 
-This repository uses a **two-step release** — version bump in a reviewed PR, then manual publish. Merging to `main` never publishes.
+This repository uses a **two-step release**. **Merging to `main` never publishes.**
 
 | Step | Who | What |
 | --- | --- | --- |
-| **A — Version bump** | Reviewed PR | Bump aligned manifests (`package.json`, `plugin.json`, `.cursor-plugin/plugin.json`). For `0.3.0`, also scope-rename to `@multipliers-dev/renovate-workflow` and remove `private`. |
-| **B — Publish** | Maintainer | Dispatch [`.github/workflows/release.yml`](.github/workflows/release.yml) on `main` with confirmation `publish X.Y.Z`. |
+| **A — Version bump** | Reviewed PR | Bump aligned manifests (`package.json`, `plugin.json`, `.cursor-plugin/plugin.json`) to the same `X.Y.Z`. |
+| **B — Publish** | Maintainer | On `main`, manually dispatch [`.github/workflows/release.yml`](.github/workflows/release.yml) with confirmation `publish X.Y.Z`. |
 
-**Before first release:**
-
-1. `version-bump-0.3.0` merged on `main` (scoped name, `0.3.0`, not private).
-2. **npm CLI preflight** — `sh scripts/npm-stage-cli-preflight.sh` (staged publishing requires npm **≥ 11.15.0**; Node version alone does not guarantee `npm stage` exists).
-3. **One-time registry bootstrap** — validate `0.3.0` in the checkout (`npm ci`, `npm test`, `npm run typecheck`, `npm run build`, `npm pack`), then `npm run bootstrap:tarball` to build/preflight a **disposable `0.0.1` tarball** (npm pack in an isolated temp dir — not manual `tar -czf`; canonical checkout stays at `0.3.0`), then `npm stage publish` that tarball. **Do not** stage `0.3.0` and leave it pending. See [docs/versioning.md § Trusted Publishing bootstrap](docs/versioning.md#trusted-publishing-bootstrap).
-4. Configure npm **Trusted Publisher** for workflow `release.yml` (`multipliers-dev/renovate-workflow`). See [docs/versioning.md § npm Trusted Publisher settings](docs/versioning.md#npm-trusted-publisher-settings).
-5. Dispatch **Release** within **48 hours** of creating the Trusted Publisher configuration; after successful OIDC `0.3.0`, reject the pending bootstrap stage with `npm stage reject <stage-id>` (2FA).
-
-Publishing uses **OIDC** (no `NPM_TOKEN`). Provenance is automatic for public packages from this public repo.
+Publishing uses npm **Trusted Publishing** (GitHub Actions OIDC). **Do not** create or store an `NPM_TOKEN` / `NODE_AUTH_TOKEN` for releases. Provenance is automatic for this public package from this public repo.
 
 The release workflow reads **name and version from the checked-out `package.json` only** (`npm publish --access public` with no CLI coordinate override). It does not bump versions or commit to `main`. npm and plugin always share version *V* at the same commit. Only one release dispatch runs at a time (`concurrency: release`).
 
