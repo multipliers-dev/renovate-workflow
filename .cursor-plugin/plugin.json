@@ -1,6 +1,6 @@
 {
   "name": "renovate-workflow",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Portable Renovate merge ladder: classify, investigate, maintainer, loop orchestration.",
   "author": {
     "name": "Michael Truong",
