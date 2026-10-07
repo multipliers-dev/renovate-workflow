@@ -123,31 +123,31 @@ describe("npm pack manifest", () => {
     "legacy consumer package layout runs tsx on packaged scripts/renovate-freshness-poll.ts --help",
     { timeout: 120_000 },
     () => {
-    const { tarballPath } = runPack();
-    const consumerDir = installLegacyConsumerPackage(tarballPath);
+      const { tarballPath } = runPack();
+      const consumerDir = installLegacyConsumerPackage(tarballPath);
 
-    try {
-      const tsxPath = join(consumerDir, "node_modules", ".bin", "tsx");
-      const legacyScript = join(
-        consumerDir,
-        "node_modules",
-        "renovate-workflow",
-        "scripts",
-        "renovate-freshness-poll.ts"
-      );
-      expect(existsSync(tsxPath)).toBe(true);
-      expect(readFileSync(legacyScript, "utf8")).toContain("parseRenovateFreshnessPollArgs");
+      try {
+        const tsxPath = join(consumerDir, "node_modules", ".bin", "tsx");
+        const legacyScript = join(
+          consumerDir,
+          "node_modules",
+          "renovate-workflow",
+          "scripts",
+          "renovate-freshness-poll.ts"
+        );
+        expect(existsSync(tsxPath)).toBe(true);
+        expect(readFileSync(legacyScript, "utf8")).toContain("parseRenovateFreshnessPollArgs");
 
-      const { status, stderr, stdout } = spawnSync(
-        tsxPath,
-        ["node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts", "--help"],
-        { cwd: consumerDir, encoding: "utf8" }
-      );
-      expectHelpOutput(status, stderr, stdout);
-    } finally {
-      rmSync(tarballPath, { force: true });
-      rmSync(consumerDir, { recursive: true, force: true });
-    }
+        const { status, stderr, stdout } = spawnSync(
+          tsxPath,
+          ["node_modules/renovate-workflow/scripts/renovate-freshness-poll.ts", "--help"],
+          { cwd: consumerDir, encoding: "utf8" }
+        );
+        expectHelpOutput(status, stderr, stdout);
+      } finally {
+        rmSync(tarballPath, { force: true });
+        rmSync(consumerDir, { recursive: true, force: true });
+      }
     }
   );
 });
