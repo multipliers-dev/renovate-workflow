@@ -128,7 +128,7 @@ This repository uses a **two-step release** — version bump in a reviewed PR, t
 
 1. `version-bump-0.3.0` merged on `main` (scoped name, `0.3.0`, not private).
 2. **npm CLI preflight** — `sh scripts/npm-stage-cli-preflight.sh` (staged publishing requires npm **≥ 11.15.0**; Node version alone does not guarantee `npm stage` exists).
-3. **One-time registry bootstrap** — validate `0.3.0` in the checkout (`npm ci`, `npm test`, `npm run typecheck`, `npm run build`, `npm pack`), then `npm stage publish` a **disposable `0.0.1` tarball** built from that packed artifact (canonical checkout stays at `0.3.0`). **Do not** stage `0.3.0` and leave it pending. See [docs/versioning.md § Trusted Publishing bootstrap](docs/versioning.md#trusted-publishing-bootstrap).
+3. **One-time registry bootstrap** — validate `0.3.0` in the checkout (`npm ci`, `npm test`, `npm run typecheck`, `npm run build`, `npm pack`), then `npm run bootstrap:tarball` to build/preflight a **disposable `0.0.1` tarball** (npm pack in an isolated temp dir — not manual `tar -czf`; canonical checkout stays at `0.3.0`), then `npm stage publish` that tarball. **Do not** stage `0.3.0` and leave it pending. See [docs/versioning.md § Trusted Publishing bootstrap](docs/versioning.md#trusted-publishing-bootstrap).
 4. Configure npm **Trusted Publisher** for workflow `release.yml` (`multipliers-dev/renovate-workflow`). See [docs/versioning.md § npm Trusted Publisher settings](docs/versioning.md#npm-trusted-publisher-settings).
 5. Dispatch **Release** within **48 hours** of creating the Trusted Publisher configuration; after successful OIDC `0.3.0`, reject the pending bootstrap stage with `npm stage reject <stage-id>` (2FA).
 

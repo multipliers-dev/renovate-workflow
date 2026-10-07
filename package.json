@@ -40,7 +40,8 @@
     "prepare": "sh scripts/prepare-git-hooks.sh",
     "verify:git-hooks": "sh scripts/verify-git-hooks.sh",
     "renovate:freshness-poll": "tsx scripts/renovate-freshness-poll.ts",
-    "check:agent-plugins-spec-drift": "tsx scripts/check-agent-plugins-spec-drift.ts"
+    "check:agent-plugins-spec-drift": "tsx scripts/check-agent-plugins-spec-drift.ts",
+    "bootstrap:tarball": "tsx scripts/bootstrap-tarball.ts"
   },
   "dependencies": {
     "yaml": "^2.9.1"
