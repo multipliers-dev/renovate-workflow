@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFile } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
@@ -163,10 +164,10 @@ async function fetchCiState(options: CliOptions, expectedHeadSha: string): Promi
   return normalizeGhCommitStatusesForExpectedHead(statuses, expectedHeadSha);
 }
 
-async function main(): Promise<void> {
+export async function runRenovateFreshnessPollCli(args: string[]): Promise<void> {
   let options: CliOptions;
   try {
-    options = parseRenovateFreshnessPollArgs(process.argv.slice(2));
+    options = parseRenovateFreshnessPollArgs(args);
   } catch (error) {
     printUsage();
     console.error(error instanceof Error ? error.message : String(error));
@@ -186,10 +187,23 @@ async function main(): Promise<void> {
   console.log(JSON.stringify(result, null, 2));
 }
 
-const isDirectRun = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
+function isDirectRun(): boolean {
+  const entry = process.argv[1];
+  if (entry === undefined) {
+    return false;
+  }
+  const modulePath = fileURLToPath(import.meta.url);
+  try {
+    return realpathSync(modulePath) === realpathSync(entry);
+  } catch {
+    return modulePath === entry;
+  }
+}
 
-if (isDirectRun) {
-  main().catch((error: unknown) => {
+const isDirectRunEntry = isDirectRun();
+
+if (isDirectRunEntry) {
+  runRenovateFreshnessPollCli(process.argv.slice(2)).catch((error: unknown) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   });

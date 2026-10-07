@@ -105,7 +105,7 @@ When packet is `stop: true` and **not** investigation-eligible:
 - [ ] Pre-update §2.6 `UNKNOWN`: loop stops with `classifier_freshness_stop`; babysit cell is `enabled_not_triggered`; helper is **not** invoked
 - [ ] Loop output explicitly states: **babysit not triggered because the freshness gate stopped before branch update** (or equivalent normative wording from loop skill)
 - [ ] Operator output includes **What to do next** steps and distinguishes pre-update `UNKNOWN` from `BLOCKED`/`DIRTY` (no operator-facing `baseRefOid` comparison)
-- [ ] Post-update `UNKNOWN` or `BLOCKED`: classifier invokes `npm exec -- tsx scripts/renovate-freshness-poll.ts --repo ... --pr ... --expected-head ...` only when `/renovate-loop --babysit` is active
+- [ ] Post-update `UNKNOWN` or `BLOCKED`: classifier invokes `npm run renovate:freshness-poll -- --repo ... --pr ... --expected-head ...` only when `/renovate-loop --babysit` is active
 - [ ] Helper `outcome: "clean"`: loop routes per packet shape after classifier emits a packet using the returned `headSha` — maintainer auto path when `stop: false`, investigator when investigation-eligible (F1)
 - [ ] Helper stop outcome (`unknown_exhausted`, `budget_exhausted`, `merge_query_failed`, `ci_query_failed`, `ci_failed`, `non_clean`, or `head_changed`): loop stops with `classifier_freshness_stop` and does **not** invoke maintainer or investigator
 - [ ] Default `/renovate-loop` still stops immediately on post-update `UNKNOWN`

@@ -209,7 +209,7 @@ Without `/renovate-loop --babysit`, any post-update state other than `CLEAN` →
 With `/renovate-loop --babysit`, handle only post-update settling for the PR head created by the successful branch update. Run the tested helper with the post-update head as the expected head, using default budgets and intervals:
 
 ```bash
-npm exec -- tsx scripts/renovate-freshness-poll.ts --repo {owner}/{repo} --pr {N} --expected-head {postUpdateHeadRefOid}
+npm run renovate:freshness-poll -- --repo {owner}/{repo} --pr {N} --expected-head {postUpdateHeadRefOid}
 ```
 
 Do not pass debug override flags from skill prose. The helper owns merge-state polling, CI polling, wall-clock budgets, consecutive `UNKNOWN` handling, head-SHA binding, and terminal outcome classification.

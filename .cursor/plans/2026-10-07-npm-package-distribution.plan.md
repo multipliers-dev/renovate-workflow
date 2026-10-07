@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: package-cli
     content: "PR: tsc build, bin, transition files (dist+scripts), dual-path tests, skill fix; keep unscoped name (no publish)"
-    status: pending
+    status: completed
   - id: release-infrastructure
     content: "PR: workflow_dispatch release.yml (publish-only, no version bump), dry-run CI, update versioning/adopt/distribution docs (no publish)"
     status: pending
