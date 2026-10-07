@@ -111,20 +111,51 @@ Choose **one** bootstrap path before configuring the Trusted Publisher and dispa
 
 Uses [staged publishing](https://docs.npmjs.com/staged-publishing): staging a **new** scoped package also creates a public `0.0.0-stage` placeholder so the package exists on npm. `npm stage publish` does **not** require 2FA.
 
-Stage a **bootstrap version other than `0.3.0`** so the `0.3.0` semver slot stays free for `release.yml`.
+Stage a **bootstrap version other than `0.3.0`** so the `0.3.0` semver slot stays free for `release.yml`. The `0.0.1` version is **disposable local state only** — never commit it.
 
-1. From a checkout of the merged `0.3.0` commit on `main`, with npm **≥ 11.15.0** and Node **≥ 22.14.0**:
-   ```bash
-   npm ci && npm test && npm run typecheck && npm run build
-   npm pkg set version=0.0.1          # local only — do not commit
-   npm stage publish --access public
-   npm pkg set version=0.3.0          # restore local manifest; release workflow reads committed 0.3.0
-   ```
-2. **Do not** approve the staged `0.0.1` submission. A pending `0.0.1` does **not** block OIDC publish of `0.3.0`. The registry now has the package shell (`0.0.0-stage` placeholder).
-3. Configure the Trusted Publisher (below) **within 48 hours** of creating it — unvalidated configurations expire ([npm docs](https://docs.npmjs.com/trusted-publishers/#trusted-publisher-configuration-expiry), [GitHub changelog](https://github.blog/changelog/2026-10-02-unvalidated-npm-trusted-publishing-configurations-now-expire/)).
-4. Dispatch `release.yml` with confirmation `publish 0.3.0` — OIDC publishes the real `0.3.0` artifact.
+**1. Bootstrap (one-time, local)**
 
-Optional hygiene after `0.3.0` is live: `npm stage reject <stage-id>` for the pending `0.0.1` bootstrap submission (2FA).
+From a checkout of the merged `0.3.0` commit on `main`, with npm **≥ 11.15.0** and Node **≥ 22.14.0**:
+
+```bash
+npm ci && npm test && npm run typecheck && npm run build
+
+# Disposable local manifest only — do not commit
+npm pkg set version=0.0.1
+npm stage publish --access public
+
+# Restore tracked files from git (do not rely on another npm pkg set)
+git checkout -- package.json
+
+# Record the bootstrap stage id for post-release cleanup
+npm stage list @multipliers-dev/renovate-workflow
+```
+
+**Do not** approve the staged `0.0.1` submission. A pending `0.0.1` does **not** block OIDC publish of `0.3.0`. The registry now has the package shell (`0.0.0-stage` placeholder).
+
+**2. Preflight before Trusted Publisher config and `release.yml` dispatch**
+
+Confirm the checkout matches the committed release manifest:
+
+```bash
+test -z "$(git status --porcelain)" || { echo "working tree not clean" >&2; exit 1; }
+test "$(jq -r '.version' package.json)" = "0.3.0" || { echo "package.json version must be 0.3.0" >&2; exit 1; }
+```
+
+**3. Configure Trusted Publisher** (below) **within 48 hours** of creating it — unvalidated configurations expire ([npm docs](https://docs.npmjs.com/trusted-publishers/#trusted-publisher-configuration-expiry), [GitHub changelog](https://github.blog/changelog/2026-10-02-unvalidated-npm-trusted-publishing-configurations-now-expire/)).
+
+Re-run the preflight checks above immediately before dispatch if any local files changed.
+
+**4. Dispatch `release.yml`** with confirmation `publish 0.3.0` — OIDC publishes the real `0.3.0` artifact.
+
+**5. Post-release cleanup (after successful OIDC publication of `0.3.0`)**
+
+Reject the disposable bootstrap stage so it does not linger in the staging area:
+
+```bash
+npm stage list @multipliers-dev/renovate-workflow   # find the pending 0.0.1 stage id
+npm stage reject <stage-id>                         # requires account 2FA
+```
 
 #### Option A′ — Staged `0.3.0`, then explicit reject (only if you already staged `0.3.0`)
 
