@@ -20,7 +20,7 @@ import {
 } from "./lib/bootstrap-tarball.js";
 
 const REPO_ROOT = resolve(import.meta.dirname, "..");
-const CANONICAL_VERSION = "0.3.0";
+const CANONICAL_VERSION = "0.3.1";
 
 function parseArgs(argv: string[]): { fromTarball?: string; outputDir?: string } {
   const options: { fromTarball?: string; outputDir?: string } = {};

@@ -68,11 +68,11 @@ function expectHelpOutput(status: number | null, stderr: string, stdout: string)
 }
 
 describe("npm pack manifest", () => {
-  it("release manifest ships scoped name 0.3.0, dist, and README only", () => {
+  it("release manifest ships scoped name 0.3.1, dist, and README only", () => {
     const { tarballPath, manifest, entries } = runPack();
 
     expect(manifest.name).toBe("@multipliers-dev/renovate-workflow");
-    expect(manifest.version).toBe("0.3.0");
+    expect(manifest.version).toBe("0.3.1");
 
     const normalized = entries.map((entry) => entry.replace(/^package\//, ""));
     expect(normalized.some((entry) => entry.startsWith("dist/cli.js"))).toBe(true);
