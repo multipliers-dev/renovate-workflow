@@ -3,7 +3,10 @@ name: Validate plans
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+      - smoke/plan-validator-adoption-negative
+      - smoke/plan-validator-adoption-valid
   workflow_dispatch:
 
 permissions:
