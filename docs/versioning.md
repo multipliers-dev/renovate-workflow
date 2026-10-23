@@ -8,9 +8,9 @@ Keep these in sync when bumping in a reviewed PR:
 
 | File | Field | Current |
 | --- | --- | --- |
-| `package.json` | `"version"` | `0.3.0` |
-| `plugin.json` (Agent Plugins 1.0 portable) | `"version"` | `0.3.0` |
-| `.cursor-plugin/plugin.json` (Cursor overlay) | `"version"` | `0.3.0` |
+| `package.json` | `"version"` | `0.3.1` |
+| `plugin.json` (Agent Plugins 1.0 portable) | `"version"` | `0.3.1` |
+| `.cursor-plugin/plugin.json` (Cursor overlay) | `"version"` | `0.3.1` |
 
 The marketplace catalog (`.cursor-plugin/marketplace.json`) has **no version field**. Treat it as install metadata for the GitHub-import flow, not a release artifact.
 
@@ -188,7 +188,7 @@ This repository does **not** depend on its own published npm package.
 
 ## Agent Plugins spec version
 
-This is separate from the package version (`0.3.0` above). The repo targets **Agent Plugins spec 1.0.0** via the root `plugin.json` `$schema` URL:
+This is separate from the package version (`0.3.1` above). The repo targets **Agent Plugins spec 1.0.0** via the root `plugin.json` `$schema` URL:
 
 `https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`
 
