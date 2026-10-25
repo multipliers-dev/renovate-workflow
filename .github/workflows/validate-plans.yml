@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   validate-plans:
-    uses: multipliers-dev/cursor-team-marketplace/.github/workflows/validate-plans.yml@plan-validator-workflow-v1.0.0
+    uses: multipliers-dev/cursor-team-marketplace/.github/workflows/validate-plans.yml@9b16a15835bffec3f6e5e9d5bd071c99db74b188 # plan-validator-workflow-v1.0.0
     with:
       validator_version: "0.1.0"
       allow_empty: true
