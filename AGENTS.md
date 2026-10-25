@@ -42,6 +42,8 @@ The published npm tarball ships `dist/` and the compiled CLI only — `scripts/`
 | Maintainer | `skills/renovate-maintainer/` |
 | Draft readiness | `skills/renovate-draft-readiness/` |
 
+Canonical skill edits live under `skills/` only. When changing skill files, run `npm run sync:legacy-skill-shim` so generated `.cursor/skills/` copies stay aligned (legacy host body fetch — [docs/legacy-skill-shim.md](docs/legacy-skill-shim.md)).
+
 ## Agents
 
 | Agent | Path |

@@ -36,6 +36,8 @@ After pulling or reinstalling **0.2.0**:
 2. Run **Developer: Reload Window** if slash commands still resolve to stale paths
 3. Update any local deep links from `.cursor/skills/…` to `skills/…` (consumer repos should not vendor skills)
 
+**Skill body load (Grok Bot / legacy hosts):** Discovery uses `skills/`, but some hosts still fetch bodies from `.cursor/skills/…` via GitHub Contents. This repo generates byte-identical copies under `.cursor/skills/` for that compat path only — see [legacy-skill-shim.md](legacy-skill-shim.md). Edit canonical files in `skills/` and run `npm run sync:legacy-skill-shim` before commit.
+
 ---
 
 ## Quick start (classifier only)
