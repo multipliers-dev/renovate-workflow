@@ -66,6 +66,28 @@ describe("validate-plugin-structure", () => {
     }
   });
 
+  it("legacy .cursor/skills shim mirrors canonical skills/ (host body-load compat)", () => {
+    const skillNames = [
+      "renovate-classifier",
+      "renovate-loop",
+      "renovate-investigator",
+      "renovate-maintainer",
+      "renovate-draft-readiness",
+    ];
+
+    for (const skillName of skillNames) {
+      const canonical = readFileSync(
+        join(REPO_ROOT, "skills", skillName, "SKILL.md"),
+        "utf8",
+      );
+      const legacy = readFileSync(
+        join(REPO_ROOT, ".cursor", "skills", skillName, "SKILL.md"),
+        "utf8",
+      );
+      expect(legacy).toBe(canonical);
+    }
+  });
+
   it(".cursor-plugin/plugin.json points skills and agents at repo paths", () => {
     const manifestPath = join(REPO_ROOT, ".cursor-plugin", "plugin.json");
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<

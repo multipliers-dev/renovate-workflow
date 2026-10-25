@@ -32,6 +32,7 @@
     "verify:git-hooks": "sh scripts/verify-git-hooks.sh",
     "renovate:freshness-poll": "tsx scripts/renovate-freshness-poll.ts",
     "check:agent-plugins-spec-drift": "tsx scripts/check-agent-plugins-spec-drift.ts",
+    "sync:legacy-skill-shim": "tsx scripts/sync-legacy-skill-shim.ts",
     "bootstrap:tarball": "tsx scripts/bootstrap-tarball.ts"
   },
   "dependencies": {
