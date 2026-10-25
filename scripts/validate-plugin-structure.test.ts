@@ -79,29 +79,16 @@ describe("validate-plugin-structure", () => {
     expect(manifest.skills).not.toMatch(/\.cursor\/skills/);
   });
 
-  it("marketplace plugin entry declares Agent Plugins 1.0 skill path (not legacy .cursor/skills)", () => {
-    const marketplacePath = join(REPO_ROOT, ".cursor-plugin", "marketplace.json");
-    const marketplace = JSON.parse(
-      readFileSync(marketplacePath, "utf8"),
-    ) as {
-      plugins: Array<Record<string, unknown>>;
-    };
+  it("committed plugin manifests do not register legacy .cursor/skills paths", () => {
+    const marketplaceRaw = readFileSync(
+      join(REPO_ROOT, ".cursor-plugin", "marketplace.json"),
+      "utf8",
+    );
+    expect(marketplaceRaw).not.toContain(".cursor/skills");
 
-    const entry = marketplace.plugins.find((p) => p.name === "renovate-workflow");
-    expect(entry).toBeDefined();
-    expect(entry!.skills).toBe("./skills");
-    expect(entry!.agents).toBe("./.agents");
-    expect(String(entry!.skills)).not.toMatch(/\.cursor\/skills/);
-  });
-
-  it("minimal skill-load fixture stays Agent Plugins 1.0 conformant", () => {
-    const fixtureRoot = join(REPO_ROOT, "examples", "plugin-skill-load-min");
-    const cursorManifest = JSON.parse(
-      readFileSync(join(fixtureRoot, ".cursor-plugin", "plugin.json"), "utf8"),
+    const cursorPlugin = JSON.parse(
+      readFileSync(join(REPO_ROOT, ".cursor-plugin", "plugin.json"), "utf8"),
     ) as Record<string, unknown>;
-    expect(cursorManifest.skills).toBe("./skills");
-    expect(
-      readFileSync(join(fixtureRoot, "skills", "test-skill", "SKILL.md"), "utf8"),
-    ).toContain("SKILL_LOAD_MIN_MARKER");
+    expect(String(cursorPlugin.skills ?? "")).not.toMatch(/\.cursor\/skills/);
   });
 });

@@ -1,6 +1,0 @@
-{
-  "name": "skill-load-min-fixture",
-  "version": "0.0.0",
-  "description": "Minimal skill-load reproduction fixture (dev only).",
-  "skills": "./skills"
-}
