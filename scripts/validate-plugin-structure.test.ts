@@ -76,5 +76,32 @@ describe("validate-plugin-structure", () => {
     expect(manifest.version).toBe(packageVersion);
     expect(manifest.skills).toBe("./skills");
     expect(manifest.agents).toBe("./.agents");
+    expect(manifest.skills).not.toMatch(/\.cursor\/skills/);
+  });
+
+  it("marketplace plugin entry declares Agent Plugins 1.0 skill path (not legacy .cursor/skills)", () => {
+    const marketplacePath = join(REPO_ROOT, ".cursor-plugin", "marketplace.json");
+    const marketplace = JSON.parse(
+      readFileSync(marketplacePath, "utf8"),
+    ) as {
+      plugins: Array<Record<string, unknown>>;
+    };
+
+    const entry = marketplace.plugins.find((p) => p.name === "renovate-workflow");
+    expect(entry).toBeDefined();
+    expect(entry!.skills).toBe("./skills");
+    expect(entry!.agents).toBe("./.agents");
+    expect(String(entry!.skills)).not.toMatch(/\.cursor\/skills/);
+  });
+
+  it("minimal skill-load fixture stays Agent Plugins 1.0 conformant", () => {
+    const fixtureRoot = join(REPO_ROOT, "examples", "plugin-skill-load-min");
+    const cursorManifest = JSON.parse(
+      readFileSync(join(fixtureRoot, ".cursor-plugin", "plugin.json"), "utf8"),
+    ) as Record<string, unknown>;
+    expect(cursorManifest.skills).toBe("./skills");
+    expect(
+      readFileSync(join(fixtureRoot, "skills", "test-skill", "SKILL.md"), "utf8"),
+    ).toContain("SKILL_LOAD_MIN_MARKER");
   });
 });

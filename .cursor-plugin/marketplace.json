@@ -5,13 +5,17 @@
     "email": "michael@multipliers.dev"
   },
   "metadata": {
-    "description": "Portable Renovate merge ladder: classify, investigate, maintainer, and loop orchestration."
+    "description": "Portable Renovate merge ladder: classify, investigate, maintainer, and loop orchestration.",
+    "version": "0.3.1"
   },
   "plugins": [
     {
       "name": "renovate-workflow",
       "source": ".",
-      "description": "Portable Renovate merge ladder: classify, investigate, maintainer, loop orchestration."
+      "description": "Portable Renovate merge ladder: classify, investigate, maintainer, loop orchestration.",
+      "version": "0.3.1",
+      "skills": "./skills",
+      "agents": "./.agents"
     }
   ]
 }

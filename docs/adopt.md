@@ -36,6 +36,8 @@ After pulling or reinstalling **0.2.0**:
 2. Run **Developer: Reload Window** if slash commands still resolve to stale paths
 3. Update any local deep links from `.cursor/skills/…` to `skills/…` (consumer repos should not vendor skills)
 
+If slash commands work but the **Skill tool** cannot load skill bodies (GitHub Contents **404** on `.cursor/skills/…` while `skills/…` returns **200**), the host may still have **stale installed-plugin capability paths** from pre–0.2.0. **Update/Reinstall is not always enough** — remove the marketplace entirely, clear the plugin cache if needed, then re-import. Full steps: [skill-load-troubleshooting.md](skill-load-troubleshooting.md).
+
 ---
 
 ## Quick start (classifier only)
