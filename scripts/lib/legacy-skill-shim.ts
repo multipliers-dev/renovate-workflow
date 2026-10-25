@@ -5,8 +5,6 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  statSync,
-  writeFileSync,
 } from "node:fs";
 import { join, relative } from "node:path";
 
@@ -19,8 +17,6 @@ export const CANONICAL_SKILLS_DIR = "skills";
  * reports `skills/…`. Generated copies only — never edit by hand.
  */
 export const LEGACY_SKILLS_DIR = join(".cursor", "skills");
-
-const GENERATED_MARKER = ".legacy-skill-shim-generated";
 
 export type LegacyShimPaths = {
   repoRoot: string;
@@ -36,14 +32,25 @@ export function resolveLegacyShimPaths(repoRoot: string): LegacyShimPaths {
   };
 }
 
-function listSkillNames(canonicalDir: string): string[] {
-  if (!existsSync(canonicalDir)) {
-    throw new Error(`canonical skills directory missing: ${canonicalDir}`);
+function listSkillNames(skillsDir: string, label: string): string[] {
+  if (!existsSync(skillsDir)) {
+    if (label === "canonical") {
+      throw new Error(`canonical skills directory missing: ${skillsDir}`);
+    }
+    return [];
   }
-  return readdirSync(canonicalDir, { withFileTypes: true })
+  return readdirSync(skillsDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
+}
+
+function listCanonicalSkillNames(canonicalDir: string): string[] {
+  return listSkillNames(canonicalDir, "canonical");
+}
+
+function listLegacySkillNames(legacyDir: string): string[] {
+  return listSkillNames(legacyDir, "legacy");
 }
 
 function listFilesRecursive(rootDir: string, baseDir = rootDir): string[] {
@@ -68,7 +75,8 @@ export type LegacyShimDrift = {
 
 export function findLegacyShimDrift(paths: LegacyShimPaths): LegacyShimDrift[] {
   const drifts: LegacyShimDrift[] = [];
-  const skillNames = listSkillNames(paths.canonicalDir);
+  const skillNames = listCanonicalSkillNames(paths.canonicalDir);
+  const canonicalSkillSet = new Set(skillNames);
 
   for (const skillName of skillNames) {
     const canonicalSkillRoot = join(paths.canonicalDir, skillName);
@@ -121,17 +129,26 @@ export function findLegacyShimDrift(paths: LegacyShimPaths): LegacyShimDrift[] {
     }
   }
 
+  for (const legacySkillName of listLegacySkillNames(paths.legacyDir)) {
+    if (!canonicalSkillSet.has(legacySkillName)) {
+      drifts.push({
+        skill: legacySkillName,
+        relativePath: "(entire skill tree)",
+        reason: "extra_legacy",
+      });
+    }
+  }
+
   return drifts;
 }
 
 export type SyncLegacyShimResult = {
   skillNames: string[];
   filesCopied: number;
-  markerPath: string;
 };
 
 export function syncLegacySkillShim(paths: LegacyShimPaths): SyncLegacyShimResult {
-  const skillNames = listSkillNames(paths.canonicalDir);
+  const skillNames = listCanonicalSkillNames(paths.canonicalDir);
   mkdirSync(paths.legacyDir, { recursive: true });
 
   let filesCopied = 0;
@@ -144,32 +161,21 @@ export function syncLegacySkillShim(paths: LegacyShimPaths): SyncLegacyShimResul
     filesCopied += copied.length;
   }
 
-  // Remove legacy skill dirs that no longer exist canonically.
+  // Remove legacy skill dirs (and stray files) that no longer exist canonically.
   if (existsSync(paths.legacyDir)) {
     for (const entry of readdirSync(paths.legacyDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) {
-        continue;
-      }
-      if (!skillNames.includes(entry.name)) {
-        rmSync(join(paths.legacyDir, entry.name), { recursive: true, force: true });
+      const entryPath = join(paths.legacyDir, entry.name);
+      if (entry.isDirectory()) {
+        if (!skillNames.includes(entry.name)) {
+          rmSync(entryPath, { recursive: true, force: true });
+        }
+      } else {
+        rmSync(entryPath, { force: true });
       }
     }
   }
 
-  const markerPath = join(paths.legacyDir, GENERATED_MARKER);
-  writeFileSync(
-    markerPath,
-    [
-      "legacy-skill-shim",
-      `generated_at=${new Date().toISOString()}`,
-      `canonical=${CANONICAL_SKILLS_DIR}/`,
-      `skills=${skillNames.join(",")}`,
-      "",
-    ].join("\n"),
-    "utf8",
-  );
-
-  return { skillNames, filesCopied, markerPath };
+  return { skillNames, filesCopied };
 }
 
 export function assertLegacyShimInSync(paths: LegacyShimPaths): void {
@@ -190,9 +196,4 @@ export function assertLegacyShimInSync(paths: LegacyShimPaths): void {
     `Legacy skill shim out of sync with ${CANONICAL_SKILLS_DIR}/. ` +
       `Run: npm run sync:legacy-skill-shim\n${summary}${extra}`,
   );
-}
-
-export function legacyShimMarkerExists(paths: LegacyShimPaths): boolean {
-  const marker = join(paths.legacyDir, GENERATED_MARKER);
-  return existsSync(marker) && statSync(marker).isFile();
 }

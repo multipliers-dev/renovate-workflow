@@ -42,6 +42,35 @@ describe("legacy skill shim", () => {
     assertLegacyShimInSync(paths);
   });
 
+  it("detects orphan legacy skill dir after canonical skill removal", () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "legacy-shim-orphan-"));
+    try {
+      const canonical = join(tempRoot, CANONICAL_SKILLS_DIR, "demo-skill");
+      mkdirSync(canonical, { recursive: true });
+      writeFileSync(join(canonical, "SKILL.md"), "# demo\n", "utf8");
+
+      const tempPaths = resolveLegacyShimPaths(tempRoot);
+      syncLegacySkillShim(tempPaths);
+
+      rmSync(canonical, { recursive: true, force: true });
+      const drifts = findLegacyShimDrift(tempPaths);
+      expect(drifts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            skill: "demo-skill",
+            relativePath: "(entire skill tree)",
+            reason: "extra_legacy",
+          }),
+        ]),
+      );
+      expect(() => assertLegacyShimInSync(tempPaths)).toThrow(
+        /sync:legacy-skill-shim/,
+      );
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   it("detects content drift after canonical edit without re-sync", () => {
     const tempRoot = mkdtempSync(join(tmpdir(), "legacy-shim-test-"));
     try {
