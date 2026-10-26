@@ -76,5 +76,19 @@ describe("validate-plugin-structure", () => {
     expect(manifest.version).toBe(packageVersion);
     expect(manifest.skills).toBe("./skills");
     expect(manifest.agents).toBe("./.agents");
+    expect(manifest.skills).not.toMatch(/\.cursor\/skills/);
+  });
+
+  it("committed plugin manifests do not register legacy .cursor/skills paths", () => {
+    const marketplaceRaw = readFileSync(
+      join(REPO_ROOT, ".cursor-plugin", "marketplace.json"),
+      "utf8",
+    );
+    expect(marketplaceRaw).not.toContain(".cursor/skills");
+
+    const cursorPlugin = JSON.parse(
+      readFileSync(join(REPO_ROOT, ".cursor-plugin", "plugin.json"), "utf8"),
+    ) as Record<string, unknown>;
+    expect(String(cursorPlugin.skills ?? "")).not.toMatch(/\.cursor\/skills/);
   });
 });
