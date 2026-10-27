@@ -64,6 +64,40 @@ An agent must not assume Git hooks are active merely because `core.hooksPath` is
 
 Cloud Agents: committed `.cursor/environment.json` runs `npm ci` (triggers `prepare`) then blocking `ENSURE_HOOKS_MODE=wait ENSURE_HOOKS_WAIT_SECS=120 sh scripts/ensure-hooks.sh` on start — no `cloud-agent-*` Node wrappers (no `.nvmrc` pin). Marketplace / plugin install does not wire this by itself. After merging lifecycle changes, trigger and promote a new environment Build.
 
+## Savepoints Lite (session logging)
+
+Instruction-only — **no** Savepoints lifecycle hooks.
+
+### Ongoing logging authorization
+
+Installing the package or connecting Notion MCP does **not** alone authorize production Notion writes. **Opt-in** = this Savepoints Lite session-log section committed in the repository root `AGENTS.md`. Once activated, maintain the session log **without** separate authorization before each entry, subject to host Notion MCP permissions. If activation is absent or consent is unclear, do not write; fail open without claiming persistence. Manual behavioral verification per the package checklist requires operator authorization for that verification session only — not per routine log entry.
+
+### Session log
+
+Maintain a running session log in Notion.
+
+Do not wait until the session ends. Record an entry immediately after:
+
+- Every completed piece of meaningful work.
+- Every significant decision.
+- Every task switch.
+- Every primary-task error or its resolution.
+
+Each entry should capture what was done, decisions (and why), open threads, and errors (what happened and how they were handled).
+
+Use the installed Savepoints Lite instructions at:
+
+`node_modules/@multipliers-dev/savepoints-lite/skills/savepoints/SKILL.md`
+
+Complete the logging workflow before moving on to the next task or delivering the final response. Reading the instructions alone does not count as recording an entry.
+
+If logging fails, continue the primary work without retry loops.
+
+**Delegated work:** The primary agent maintains the session log, including meaningful work completed by subagents. When a subagent returns, evaluate its reported outcome and record an entry before continuing — using this checkout's installed router and Notion provider. Do not assume the subagent succeeded without supporting evidence; skip duplicate entries for the same event. Subagents do not need to install Savepoints Lite or persist Savepoints independently. Do not assume isolated worktrees contain `node_modules`, workspace activation, or Notion MCP access.
+
+- `node_modules` must exist — do not use vendored `skills/` copies.
+- Fail open on write failure; never claim Notion persistence without confirmed write.
+
 ## Discipline
 
 - Pre-commit runs `npm test` and `npm run typecheck`; do not bypass hooks.
