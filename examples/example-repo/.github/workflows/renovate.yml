@@ -11,8 +11,10 @@ name: Renovate
 
 on:
   schedule:
-    # Adjust timezone and cadence for your team
-    - cron: "0 4 * * 1"
+    # Canonical dogfood schedule (Sydney lockFileMaintenance): Sunday 13:17 UTC =
+    # Monday 00:17 AEDT. Use a non-zero minute so GitHub schedule jitter is less
+    # likely to stack with top-of-hour traffic and miss your morning window.
+    - cron: "17 13 * * 0"
   workflow_dispatch:
 
 permissions:
