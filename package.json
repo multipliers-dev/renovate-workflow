@@ -15,7 +15,7 @@
     "renovate-workflow": "./dist/cli.js"
   },
   "engines": {
-    "node": ">=22.23.5"
+    "node": "24.x"
   },
   "files": [
     "dist",

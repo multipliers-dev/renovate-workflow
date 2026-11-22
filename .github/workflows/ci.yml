@@ -27,7 +27,6 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-          registry-url: https://registry.npmjs.org
       - name: Verify pack/publish manifest (dry-run)
         run: |
           set -euo pipefail
