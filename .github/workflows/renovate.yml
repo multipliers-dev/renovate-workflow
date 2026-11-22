@@ -2,8 +2,10 @@ name: Renovate
 
 on:
   schedule:
-    # Sunday 18:00 UTC — Monday 04:00 AEST / 05:00 AEDT (before 6am lockFileMaintenance)
-    - cron: "0 18 * * 0"
+    # Sunday 13:15 UTC — Monday 00:15 AEDT (before 12pm lockFileMaintenance).
+    # :15 avoids the top of the hour; GitHub scheduled runs are best-effort and
+    # often slip hours late when many workflows fire at :00.
+    - cron: "15 13 * * 0"
   workflow_dispatch:
 
 permissions:

@@ -122,6 +122,8 @@ Add `renovate.json` and `.github/workflows/renovate.yml` for your deployment mod
 
 For `pat_branch`, set the Actions secret `RENOVATE_TOKEN`. A fine-grained PAT with Contents, Pull requests, Issues, Actions, and Workflows write (org repos as needed) is sufficient — this is how multipliers-dev runs it.
 
+**Cron timing:** GitHub's scheduled workflows start on a best-effort basis and often run hours after the cron time, especially when many repos share a top-of-hour slot. This repo dogfoods `15 13 * * 0` (Sunday 13:15 UTC; Monday 00:15 AEDT) with `lockFileMaintenance` at `before 12pm on Monday` (Australia/Sydney) — nominal start stays early, with headroom for scheduler lag inside a widened lockfile window; use a non-zero minute to reduce delay stacking. Adjust for your timezone. See [examples/example-repo/.github/workflows/renovate.yml](../examples/example-repo/.github/workflows/renovate.yml) and [renovate.json](../renovate.json).
+
 **Renovate grouping is optional topology, not policy.** Put package risk classes in `.agents/renovate-policy.yml` only. In `renovate.json`, group updates that must move together (for example GitHub Actions with `pinDigests: true`). Individual npm PRs are the default; do not copy policy bucket names into `groupName` or batch unrelated minors in a catch-all.
 
 See stubs in [examples/example-repo/](../examples/example-repo/).
