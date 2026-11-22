@@ -19,8 +19,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          # Renovate 44+ requires Node 24; matches renovatebot/github-action v46 and portfolio validate jobs.
-          node-version: 24
+          node-version: "24"
 
       - name: Validate renovate.json
-        run: npx -p renovate@44 -c 'renovate-config-validator --strict'
+        run: npx -p renovate -c 'renovate-config-validator --strict'
