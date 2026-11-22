@@ -12,7 +12,7 @@
   "homepage": "https://github.com/multipliers-dev/renovate-workflow#readme",
   "type": "module",
   "bin": {
-    "renovate-workflow": "./dist/cli.js"
+    "renovate-workflow": "dist/cli.js"
   },
   "engines": {
     "node": "24.x"

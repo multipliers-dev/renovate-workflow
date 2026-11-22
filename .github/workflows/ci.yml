@@ -34,5 +34,6 @@ jobs:
           npm test
           npm run typecheck
           npm run build
-          # --ignore-scripts: prepack already satisfied by explicit build+test above.
-          npm publish --dry-run --access public --ignore-scripts
+          # pack --dry-run exercises the publish tarball without registry version checks
+          # (npm publish --dry-run on npm 11 rejects already-published versions).
+          npm pack --dry-run --ignore-scripts
