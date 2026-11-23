@@ -62,8 +62,8 @@ The release workflow authenticates with npm via [Trusted Publishing](https://doc
 
 | Requirement | This repository |
 | --- | --- |
-| npm CLI | **≥ 11.5.1** (Trusted Publishing); release workflow uses Node **24** (bundled npm meets this) |
-| Node.js | **≥ 22.14.0** per npm docs; release workflow pins **24** |
+| npm CLI | **≥ 11.5.1** (Trusted Publishing); release workflow uses Node **26** (bundled npm meets this) |
+| Node.js | **≥ 22.14.0** per npm docs; release workflow tracks **26** via `.nvmrc` |
 | GitHub runner | **GitHub-hosted** (`ubuntu-latest`) — self-hosted runners are not supported |
 | Workflow permission | `id-token: write` (plus `contents: write` for tag/GitHub Release) |
 | `actions/setup-node` | **Do not** set `registry-url` without `NODE_AUTH_TOKEN` — an empty `_authToken` line blocks OIDC ([actions/setup-node#1551](https://github.com/actions/setup-node/issues/1551)) |

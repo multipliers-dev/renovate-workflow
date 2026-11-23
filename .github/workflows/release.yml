@@ -92,7 +92,7 @@ jobs:
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "24"
+          node-version-file: .nvmrc
           package-manager-cache: false
           # Do not set registry-url without NODE_AUTH_TOKEN — setup-node writes an empty
           # _authToken line that blocks OIDC token exchange (actions/setup-node#1551).
